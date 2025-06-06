@@ -1,15 +1,9 @@
 package databasecloud
 
-import "github.com/golang-acexy/starter-gorm/gormstarter"
+type Pager[T any] struct {
+	Records []*T  `json:"records"` // 响应数据
+	Total   int64 `json:"total"`   // 响应总记录数
 
-type GormDatabaseService[B gormstarter.IBaseMapper[M, T], M gormstarter.BaseMapper[T], T gormstarter.IBaseModel] interface {
-	WithTxMapper() M
-}
-
-type GormDBService[B gormstarter.IBaseMapper[M, T], M gormstarter.BaseMapper[T], T gormstarter.IBaseModel] struct {
-	dbService B
-}
-
-func (s GormDBService[B, M, T]) QueryByID(id any, result *T) (int64, error) {
-	return s.dbService.SelectById(id, result)
+	Size int `json:"size"` // 请求每页记录数
+	Num  int `json:"num"`  // 请求页码 从1开始
 }
