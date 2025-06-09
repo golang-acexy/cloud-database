@@ -8,21 +8,21 @@ import (
 	"testing"
 )
 
-var teacherDBService = NewTeacherDBService()
+var teacherRepo = NewTeacherRepo()
 
-func TestTeacherService(t *testing.T) {
-	teacherDBService = NewTeacherDBService()
+func TestTeacherRepo(t *testing.T) {
+	teacherRepo = NewTeacherRepo()
 	var teacher Teacher
-	teacherDBService.QueryByID(1, &teacher)
-	teacherDBService.QueryByID(2, &teacher)
+	teacherRepo.QueryByID(1, &teacher)
+	teacherRepo.QueryByID(2, &teacher)
 	tx := gormstarter.RawMysqlGormDB().Begin()
-	teacherDBTxService := teacherDBService.WithTxDBService(tx)
+	teacherDBTxService := teacherRepo.WithTxRepo(tx)
 	teacherDBTxService.QueryByID(2, &teacher)
 }
 
-func TestTeacherTxService(t *testing.T) {
-	teacherTxDBService1 := teacherDBService.NewTxDBService()
-	teacherTxDBService2 := teacherDBService.NewTxDBService()
+func TestTeacherTxRepo(t *testing.T) {
+	teacherTxDBService1 := teacherRepo.NewTxRepo()
+	teacherTxDBService2 := teacherRepo.NewTxRepo()
 	var tx1Teacher = Teacher{
 		Name: "tx1",
 		Age:  18,
@@ -35,14 +35,14 @@ func TestTeacherTxService(t *testing.T) {
 
 	row, _ = teacherTxDBService2.QueryByID(tx1TeacherId, &Teacher{})
 	fmt.Println("事务2中 尝试查询数据 该id后返回结果 ", row)
-	row, _ = teacherDBService.QueryByID(tx1TeacherId, &Teacher{})
+	row, _ = teacherRepo.QueryByID(tx1TeacherId, &Teacher{})
 	fmt.Println("无事务中 尝试查询数据 该id后返回结果 ", row)
 
 	fmt.Println("事务1中 提交事务")
 	_ = teacherTxDBService1.CurrentGormDB().Commit()
 	row, _ = teacherTxDBService2.QueryByID(tx1TeacherId, &Teacher{})
 	fmt.Println("事务2中 尝试查询数据 该id后返回结果 ", row)
-	row, _ = teacherDBService.QueryByID(tx1TeacherId, &Teacher{})
+	row, _ = teacherRepo.QueryByID(tx1TeacherId, &Teacher{})
 	fmt.Println("无事务中 尝试查询数据 该id后返回结果 ", row)
 
 	var tx2Teacher = Teacher{
@@ -56,7 +56,7 @@ func TestTeacherTxService(t *testing.T) {
 	fmt.Println("事务2中 查询数据 该id后返回结果 ", row)
 	fmt.Println("事务2中 回滚事务")
 	teacherTxDBService2.CurrentGormDB().Rollback()
-	row, _ = teacherDBService.QueryByID(tx2TeacherId, &Teacher{})
+	row, _ = teacherRepo.QueryByID(tx2TeacherId, &Teacher{})
 	fmt.Println("无事务中 尝试查询数据 该id后返回结果 ", row)
 }
 
@@ -68,21 +68,27 @@ func TestTeacherPager(t *testing.T) {
 		Num:  2,
 		Size: 3,
 	}
-	err := teacherDBService.QueryPageByCond(&teacher, "id desc", &pager)
+	err := teacherRepo.QueryPageByCond(&teacher, "id desc", &pager)
 	if err != nil {
 		fmt.Println("查询失败", err)
 	}
 	fmt.Println(json.ToJson(pager))
 
-	err = teacherDBService.QueryPageByMap(map[string]any{"name": "tx1"}, "", &pager, "id", "class_no")
+	err = teacherRepo.QueryPageByMap(map[string]any{"name": "tx1"}, "", &pager, "id", "class_no")
 	if err != nil {
 		fmt.Println("查询失败", err)
 	}
 	fmt.Println(json.ToJson(pager))
 
-	err = teacherDBService.QueryPageByWhere("name = ?", "", &pager, []any{"tx1"}, "id")
+	err = teacherRepo.QueryPageByWhere("name = ?", "", &pager, []any{"tx1"}, "id")
 	if err != nil {
 		fmt.Println("查询失败", err)
 	}
 	fmt.Println(json.ToJson(pager))
+}
+
+func TestRawMapper(t *testing.T) {
+	_ = teacherRepo.RawIMapper()
+	teacherMapper := teacherRepo.RawMapper()
+	fmt.Println(teacherMapper.CountAll())
 }

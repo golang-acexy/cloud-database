@@ -16,25 +16,31 @@ type Teacher struct {
 func (Teacher) TableName() string {
 	return "demo_teacher"
 }
-func (Teacher) DBType() gormstarter.DBType {
-	return gormstarter.DBTypeMySQL
-}
+
+//func (Teacher) DBType() gormstarter.DBType {
+//	return gormstarter.DBTypeMySQL
+//}
 
 type TeacherMapper struct {
 	gormstarter.BaseMapper[Teacher]
 }
 
-func (TeacherMapper) Test() {
-
+func (t TeacherMapper) CountAll() (total int64) {
+	t.GormWithTableName().Count(&total)
+	return total
 }
 
-type TeacherDBService struct {
-	databasecloud.GormDBService[gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher], gormstarter.BaseMapper[Teacher], Teacher]
+type TeacherRepo struct {
+	databasecloud.GormRepository[gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher], gormstarter.BaseMapper[Teacher], Teacher]
 }
 
-func NewTeacherDBService() TeacherDBService {
-	return TeacherDBService{
-		GormDBService: databasecloud.GormDBService[
+func (t TeacherRepo) RawMapper() TeacherMapper {
+	return t.RawIMapper().(TeacherMapper)
+}
+
+func NewTeacherRepo() TeacherRepo {
+	return TeacherRepo{
+		GormRepository: databasecloud.GormRepository[
 			gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher],
 			gormstarter.BaseMapper[Teacher],
 			Teacher,
@@ -43,6 +49,6 @@ func NewTeacherDBService() TeacherDBService {
 		},
 	}
 }
-func (t TeacherDBService) QueryByMap(result *Teacher) (int64, error) {
-	return t.RawMapper().SelectOneByMap(map[string]interface{}{"id": 1}, result)
+func (t TeacherRepo) QueryByMap(result *Teacher) (int64, error) {
+	return t.RawIMapper().SelectOneByMap(map[string]interface{}{"id": 1}, result)
 }
