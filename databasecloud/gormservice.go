@@ -26,8 +26,8 @@ func (g GormDBService[B, M, T]) WithTxDBService(tx *gorm.DB) GormDBService[gorms
 // >>>>>>>>>>>>>>> CRUD 操作API
 
 // RawMapper 获取原始Mapper
-func (g GormDBService[B, M, T]) RawMapper() M {
-	return g.mapper
+func (g GormDBService[B, M, T]) RawMapper() B {
+	return g.Mapper
 }
 
 // CurrentGormDB 获取当前的gorm.DB 如果已有事务则返回该事务，否则获取新的gorm.DB

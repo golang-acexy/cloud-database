@@ -24,6 +24,10 @@ type TeacherMapper struct {
 	gormstarter.BaseMapper[Teacher]
 }
 
+func (TeacherMapper) Test() {
+
+}
+
 type TeacherDBService struct {
 	databasecloud.GormDBService[gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher], gormstarter.BaseMapper[Teacher], Teacher]
 }
