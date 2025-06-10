@@ -35,6 +35,11 @@ func (g GormRepository[B, M, T]) CurrentGormDB() *gorm.DB {
 	return g.Mapper.CurrentGorm()
 }
 
+// GormDBWithTable 获取gorm.DB 且已设置当前mapper对应的表明
+func (g GormRepository[B, M, T]) GormDBWithTable() *gorm.DB {
+	return g.Mapper.GormWithTableName()
+}
+
 // Save 保存数据 默认零值数据也会进行存储 可通过设置excludeColumns排除零值数据
 func (g GormRepository[B, M, T]) Save(entity *T, excludeColumns ...string) (int64, error) {
 	return g.Mapper.Insert(entity, excludeColumns...)
