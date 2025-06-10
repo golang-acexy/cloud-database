@@ -5,7 +5,7 @@ go 1.23.5
 require (
 	github.com/acexy/golang-toolkit v0.0.48
 	github.com/golang-acexy/starter-gorm v0.1.19-0.20250606092219-c3e4c8ed4384
-	github.com/golang-acexy/starter-mongo v0.1.7-0.20250610034509-36039fcbfea9
+	github.com/golang-acexy/starter-mongo v0.1.7-0.20250610064217-9e0cfa1e911c
 	github.com/golang-acexy/starter-parent v0.1.15
 	go.mongodb.org/mongo-driver/v2 v2.2.2
 	gorm.io/gorm v1.30.0

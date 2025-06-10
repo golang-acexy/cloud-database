@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-var teacherRepo = NewTeacherRepo()
-
 func TestTeacherRepo(t *testing.T) {
 	teacherRepo = NewTeacherRepo()
 	var teacher Teacher

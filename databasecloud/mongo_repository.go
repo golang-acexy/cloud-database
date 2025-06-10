@@ -166,3 +166,28 @@ func (m MongoRepository[B, M, T]) ModifyOneByCondUseBson(update, condition bson.
 func (m MongoRepository[B, M, T]) ModifyByCondUseBson(update, condition bson.M) (bool, error) {
 	return m.Mapper.UpdateByCondUseBson(update, condition)
 }
+
+// RemoveByID 根据id删除数据
+func (m MongoRepository[B, M, T]) RemoveByID(id any, notObjectId ...bool) (bool, error) {
+	return m.Mapper.DeleteById(id, notObjectId...)
+}
+
+// RemoveOneByCond 根据条件删除一条数据
+func (m MongoRepository[B, M, T]) RemoveOneByCond(condition *T) (bool, error) {
+	return m.Mapper.DeleteOneByCond(condition)
+}
+
+// RemoveByCond 根据条件删除数据
+func (m MongoRepository[B, M, T]) RemoveByCond(condition *T) (bool, error) {
+	return m.Mapper.DeleteByCond(condition)
+}
+
+// RemoveOneByCondUseBson 根据条件删除一条数据
+func (m MongoRepository[B, M, T]) RemoveOneByCondUseBson(condition bson.M) (bool, error) {
+	return m.Mapper.DeleteOneByCondUseBson(condition)
+}
+
+// RemoveByCondUseBson 根据条件删除数据
+func (m MongoRepository[B, M, T]) RemoveByCondUseBson(condition bson.M) (bool, error) {
+	return m.Mapper.DeleteByCondUseBson(condition)
+}

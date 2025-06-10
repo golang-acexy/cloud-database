@@ -5,6 +5,16 @@ import (
 	"github.com/golang-acexy/starter-gorm/gormstarter"
 )
 
+var teacherRepo TeacherRepo = TeacherRepo{
+	GormRepository: databasecloud.GormRepository[
+		gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher],
+		gormstarter.BaseMapper[Teacher],
+		Teacher,
+	]{
+		Mapper: TeacherMapper{},
+	},
+}
+
 type Teacher struct {
 	gormstarter.BaseModel[int64]
 	Name    string
@@ -39,15 +49,7 @@ func (t TeacherRepo) RawMapper() TeacherMapper {
 }
 
 func NewTeacherRepo() TeacherRepo {
-	return TeacherRepo{
-		GormRepository: databasecloud.GormRepository[
-			gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher],
-			gormstarter.BaseMapper[Teacher],
-			Teacher,
-		]{
-			Mapper: TeacherMapper{},
-		},
-	}
+	return teacherRepo
 }
 func (t TeacherRepo) QueryByMap(result *Teacher) (int64, error) {
 	return t.RawIMapper().SelectOneByMap(map[string]interface{}{"id": 1}, result)
