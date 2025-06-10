@@ -117,7 +117,7 @@ func (g GormRepository[B, M, T]) QueryByGorm(result *[]*T, rawDb func(*gorm.DB))
 
 // QueryPageByCond 通过条件分页查询 零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
 func (g GormRepository[B, M, T]) QueryPageByCond(condition *T, sqlOrderBy string, pager *Pager[T], specifyColumns ...string) error {
-	total, err := g.Mapper.SelectPageByCond(condition, sqlOrderBy, pager.Num, pager.Size, &pager.Records, specifyColumns...)
+	total, err := g.Mapper.SelectPageByCond(condition, sqlOrderBy, pager.Number, pager.Size, &pager.Records, specifyColumns...)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (g GormRepository[B, M, T]) QueryPageByCond(condition *T, sqlOrderBy string
 
 // QueryPageByMap 通过指定字段与值查询数据分页查询 解决零值条件问题 specifyColumns 指定只需要查询的数据库字段
 func (g GormRepository[B, M, T]) QueryPageByMap(condition map[string]any, sqlOrderBy string, pager *Pager[T], specifyColumns ...string) error {
-	total, err := g.Mapper.SelectPageByMap(condition, sqlOrderBy, pager.Num, pager.Size, &pager.Records, specifyColumns...)
+	total, err := g.Mapper.SelectPageByMap(condition, sqlOrderBy, pager.Number, pager.Size, &pager.Records, specifyColumns...)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (g GormRepository[B, M, T]) QueryPageByMap(condition map[string]any, sqlOrd
 
 // QueryPageByWhere 通过原始SQL分页查询 rawWhereSql 例如 where a = 1 则只需要rawWhereSq: "a = ?" args = 1
 func (g GormRepository[B, M, T]) QueryPageByWhere(rawWhereSql, orderBy string, pager *Pager[T], args []any, specifyColumns ...string) error {
-	total, err := g.Mapper.SelectPageByWhere(rawWhereSql, orderBy, pager.Num, pager.Size, &pager.Records, args, specifyColumns...)
+	total, err := g.Mapper.SelectPageByWhere(rawWhereSql, orderBy, pager.Number, pager.Size, &pager.Records, args, specifyColumns...)
 	if err != nil {
 		return err
 	}

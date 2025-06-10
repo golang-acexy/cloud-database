@@ -65,8 +65,8 @@ func TestTeacherPager(t *testing.T) {
 		Name: "tx1",
 	}
 	pager := databasecloud.Pager[Teacher]{
-		Num:  2,
-		Size: 3,
+		Number: 2,
+		Size:   3,
 	}
 	err := teacherRepo.QueryPageByCond(&teacher, "id desc", &pager)
 	if err != nil {
