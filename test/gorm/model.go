@@ -5,7 +5,7 @@ import (
 	"github.com/golang-acexy/starter-gorm/gormstarter"
 )
 
-var teacherRepo TeacherRepo = TeacherRepo{
+var teacherRepo = TeacherRepo{
 	GormRepository: databasecloud.GormRepository[
 		gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher],
 		gormstarter.BaseMapper[Teacher],
@@ -26,10 +26,6 @@ type Teacher struct {
 func (Teacher) TableName() string {
 	return "demo_teacher"
 }
-
-//func (Teacher) DBType() gormstarter.DBType {
-//	return gormstarter.DBTypeMySQL
-//}
 
 type TeacherMapper struct {
 	gormstarter.BaseMapper[Teacher]
