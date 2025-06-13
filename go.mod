@@ -1,11 +1,11 @@
-module github.com/golang-acexy/cloud-DatabaseGen
+module github.com/golang-acexy/cloud-Generator
 
 go 1.23.5
 
 require (
 	github.com/acexy/golang-toolkit v0.0.48
 	github.com/golang-acexy/cloud-database v0.0.0-20250610070434-3c8c3f2883d6
-	github.com/golang-acexy/starter-gorm v0.1.19-0.20250606092219-c3e4c8ed4384
+	github.com/golang-acexy/starter-gorm v0.1.19-0.20250613020153-2e5a82a6c514
 	github.com/golang-acexy/starter-mongo v0.1.7-0.20250610064217-9e0cfa1e911c
 	github.com/golang-acexy/starter-parent v0.1.15
 	go.mongodb.org/mongo-driver/v2 v2.2.2

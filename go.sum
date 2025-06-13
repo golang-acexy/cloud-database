@@ -9,8 +9,8 @@ github.com/go-sql-driver/mysql v1.9.2 h1:4cNKDYQ1I84SXslGddlsrMhc8k4LeDVj6Ad6WRj
 github.com/go-sql-driver/mysql v1.9.2/go.mod h1:qn46aNg1333BRMNU69Lq93t8du/dwxI64Gl8i5p1WMU=
 github.com/golang-acexy/cloud-database v0.0.0-20250610070434-3c8c3f2883d6 h1:utv6iMIFuXUUKOPz7k49a1RGuCMSJTW5n8WYuObh5I0=
 github.com/golang-acexy/cloud-database v0.0.0-20250610070434-3c8c3f2883d6/go.mod h1:MIEqcGhYEKQyGjXddpe1TVEnyWKiGyqdr3R89exzvRA=
-github.com/golang-acexy/starter-gorm v0.1.19-0.20250606092219-c3e4c8ed4384 h1:+5OrRzld4k8z6M+K+tL5ipepnkQAUSymtQE1IVN4/6w=
-github.com/golang-acexy/starter-gorm v0.1.19-0.20250606092219-c3e4c8ed4384/go.mod h1:xzdnnV2/cbiqDN7cUPQY+1EqMTQiRZBFullItQz9UIc=
+github.com/golang-acexy/starter-gorm v0.1.19-0.20250613020153-2e5a82a6c514 h1:Q84B4QVqdbUh/KmSD3NLNdS155D5C5aSS2fqZgOzrwY=
+github.com/golang-acexy/starter-gorm v0.1.19-0.20250613020153-2e5a82a6c514/go.mod h1:xzdnnV2/cbiqDN7cUPQY+1EqMTQiRZBFullItQz9UIc=
 github.com/golang-acexy/starter-mongo v0.1.7-0.20250610064217-9e0cfa1e911c h1:eRTwjF0CRYxabzdUS8zm/D6KwAXu3XGjYfEqE9rhPUg=
 github.com/golang-acexy/starter-mongo v0.1.7-0.20250610064217-9e0cfa1e911c/go.mod h1:VLH9XEClS6qb3nclVplzM1ZZqsdpKtBfNNUcGrxXoqk=
 github.com/golang-acexy/starter-parent v0.1.15 h1:poaYgB7hNXU1/jgOZrj78if27E+Gd1FTlaupR9qNLnE=

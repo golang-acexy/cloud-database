@@ -16,7 +16,7 @@ var teacherRepo = TeacherRepo{
 }
 
 type Teacher struct {
-	gormstarter.BaseModel[int64]
+	ID      int64
 	Name    string
 	Sex     uint
 	Age     uint
