@@ -31,8 +31,8 @@ func (g GormRepository[B, M, T]) RawIMapper() B {
 }
 
 // RawMapper 获取原始基础Mapper实现
-func (g GormRepository[B, M, T]) RawMapper() B {
-	return g.Mapper
+func (g GormRepository[B, M, T]) RawMapper() M {
+	return g.mapper
 }
 
 // CurrentGormDB 获取当前的gorm.DB 如果已有事务则返回该事务，否则获取新的gorm.DB
