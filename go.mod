@@ -3,7 +3,7 @@ module github.com/golang-acexy/cloud-database
 go 1.23.5
 
 require (
-	github.com/acexy/golang-toolkit v0.0.48
+	github.com/acexy/golang-toolkit v0.0.49
 	github.com/golang-acexy/starter-gorm v0.1.19-0.20250613020153-2e5a82a6c514
 	github.com/golang-acexy/starter-mongo v0.1.7-0.20250610064217-9e0cfa1e911c
 	github.com/golang-acexy/starter-parent v0.1.15
@@ -13,9 +13,10 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/go-sql-driver/mysql v1.9.2 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.7.5 // indirect
