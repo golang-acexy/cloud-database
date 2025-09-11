@@ -2,6 +2,7 @@ package databasecloud
 
 import (
 	"database/sql"
+
 	"github.com/golang-acexy/starter-gorm/gormstarter"
 	"gorm.io/gorm"
 )
@@ -25,9 +26,14 @@ func (g GormRepository[B, M, T]) WithTxRepo(tx *gorm.DB) GormRepository[gormstar
 
 // >>>>>>>>>>>>>>> CRUD 操作API
 
-// RawIMapper 获取原始基础Mapper
+// RawIMapper 获取原始基础Mapper接口
 func (g GormRepository[B, M, T]) RawIMapper() B {
 	return g.Mapper
+}
+
+// RawMapper 获取原始基础Mapper实现
+func (g GormRepository[B, M, T]) RawMapper() M {
+	return g.mapper
 }
 
 // CurrentGormDB 获取当前的gorm.DB 如果已有事务则返回该事务，否则获取新的gorm.DB
