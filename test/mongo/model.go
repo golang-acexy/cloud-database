@@ -1,12 +1,12 @@
 package mongo
 
 import (
-	"github.com/golang-acexy/cloud-database/databasecloud"
+	"github.com/golang-acexy/cloud-database/databasecloud/mongo"
 	"github.com/golang-acexy/starter-mongo/mongostarter"
 )
 
 var teacherRepo = TeacherRepo{
-	MongoRepository: databasecloud.MongoRepository[
+	Repository: mongo.Repository[
 		mongostarter.IBaseMapper[mongostarter.BaseMapper[Teacher], Teacher],
 		mongostarter.BaseMapper[Teacher], Teacher,
 	]{
@@ -31,7 +31,7 @@ type TeacherMapper struct {
 }
 
 type TeacherRepo struct {
-	databasecloud.MongoRepository[mongostarter.IBaseMapper[mongostarter.BaseMapper[Teacher], Teacher], mongostarter.BaseMapper[Teacher], Teacher]
+	mongo.Repository[mongostarter.IBaseMapper[mongostarter.BaseMapper[Teacher], Teacher], mongostarter.BaseMapper[Teacher], Teacher]
 }
 
 func (t TeacherRepo) RawMapper() TeacherMapper {

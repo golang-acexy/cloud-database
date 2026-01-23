@@ -37,5 +37,5 @@ func TestQueryPage(t *testing.T) {
 		Size:   3,
 	}
 	fmt.Println(teacherRepo.QueryPageByCond(&Teacher{Name: "test"}, mongostarter.NewOrderBy("age", false), &pager))
-	fmt.Println(json.ToJson(pager))
+	fmt.Println(json.ToString(pager))
 }

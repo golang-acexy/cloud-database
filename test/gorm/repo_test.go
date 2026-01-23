@@ -71,19 +71,19 @@ func TestTeacherPager(t *testing.T) {
 	if err != nil {
 		fmt.Println("查询失败", err)
 	}
-	fmt.Println(json.ToJson(pager))
+	fmt.Println(json.ToString(pager))
 
 	err = teacherRepo.QueryPageByMap(map[string]any{"name": "tx1"}, "", &pager, "id", "class_no")
 	if err != nil {
 		fmt.Println("查询失败", err)
 	}
-	fmt.Println(json.ToJson(pager))
+	fmt.Println(json.ToString(pager))
 
 	err = teacherRepo.QueryPageByWhere("name = ?", "", &pager, []any{"tx1"}, "id")
 	if err != nil {
 		fmt.Println("查询失败", err)
 	}
-	fmt.Println(json.ToJson(pager))
+	fmt.Println(json.ToString(pager))
 }
 
 func TestRawMapper(t *testing.T) {
