@@ -1,12 +1,12 @@
 package gorm
 
 import (
-	"github.com/golang-acexy/cloud-database/databasecloud/gorm"
+	"github.com/golang-acexy/cloud-database/databasecloud/rds"
 	"github.com/golang-acexy/starter-gorm/gormstarter"
 )
 
 var teacherRepo = TeacherRepo{
-	Repository: gorm.Repository[
+	Repository: rds.Repository[
 		gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher],
 		gormstarter.BaseMapper[Teacher],
 		Teacher,
@@ -37,7 +37,7 @@ func (t TeacherMapper) CountAll() (total int64) {
 }
 
 type TeacherRepo struct {
-	gorm.Repository[gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher], gormstarter.BaseMapper[Teacher], Teacher]
+	rds.Repository[gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher], gormstarter.BaseMapper[Teacher], Teacher]
 }
 
 func (t TeacherRepo) RawMapper() TeacherMapper {
