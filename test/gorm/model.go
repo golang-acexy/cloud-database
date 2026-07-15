@@ -1,12 +1,9 @@
 package gorm
 
 import (
-	"github.com/golang-acexy/cloud-database/databasecloud/rds"
 	"github.com/golang-acexy/starter-gorm/gormstarter"
 	"gorm.io/gorm"
 )
-
-var teacherRepo = NewTeacherRepo()
 
 type Teacher struct {
 	ID      int64
@@ -36,25 +33,4 @@ func (t TeacherMapper) CountAll() (total int64) {
 	}
 	db.Count(&total)
 	return total
-}
-
-type TeacherRepo struct {
-	rds.Repository[TeacherRepo, TeacherMapper, Teacher]
-}
-
-func NewTeacherRepo() TeacherRepo {
-	repository := rds.NewRepository(
-		TeacherMapper{},
-		func(base rds.Repository[TeacherRepo, TeacherMapper, Teacher]) TeacherRepo {
-			return TeacherRepo{Repository: base}
-		},
-	)
-	return TeacherRepo{Repository: repository}
-}
-func (t TeacherRepo) QueryTeacherByMap(result *Teacher) (int64, error) {
-	return t.RawMapper().SelectOneByMap(map[string]any{"id": 1}, result)
-}
-
-func (t TeacherRepo) CountByName(name string) (int64, error) {
-	return t.CountByMap(map[string]any{"name": name})
 }

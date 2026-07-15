@@ -10,6 +10,29 @@ import (
 	"gorm.io/gorm"
 )
 
+var teacherRepo = NewTeacherRepo()
+
+type TeacherRepo struct {
+	rds.Repository[TeacherRepo, TeacherMapper, Teacher]
+}
+
+func NewTeacherRepo() TeacherRepo {
+	repository := rds.NewRepository(
+		TeacherMapper{},
+		func(base rds.Repository[TeacherRepo, TeacherMapper, Teacher]) TeacherRepo {
+			return TeacherRepo{Repository: base}
+		},
+	)
+	return TeacherRepo{Repository: repository}
+}
+func (t TeacherRepo) QueryTeacherByMap(result *Teacher) (int64, error) {
+	return t.RawMapper().SelectOneByMap(map[string]any{"id": 1}, result)
+}
+
+func (t TeacherRepo) CountByName(name string) (int64, error) {
+	return t.CountByMap(map[string]any{"name": name})
+}
+
 func saveTeacher(t *testing.T, name string, age uint) *Teacher {
 	t.Helper()
 	teacher := &Teacher{Name: name, Age: age, Sex: 1, ClassNo: 1}

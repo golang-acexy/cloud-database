@@ -10,9 +10,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// Mapper 在 GORM Mapper 基础上约束事务复制能力，确保事务仓库保留具体 Mapper 类型。
+// Mapper 组合 GORM Mapper 的各项基础能力，并约束事务复制能力。
+// 直接展开各项接口可避免嵌套泛型接口给跨包类型检查带来的额外复杂度。
 type Mapper[M any, T gormstarter.Model] interface {
-	gormstarter.Mapper[T]
+	gormstarter.RawMapper
+	gormstarter.QueryMapper[T]
+	gormstarter.InsertMapper[T]
+	gormstarter.UpdateMapper[T]
+	gormstarter.DeleteMapper[T]
 	WithTxMapper(tx *gorm.DB) M
 }
 
