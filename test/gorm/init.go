@@ -10,16 +10,19 @@ var starterLoader *parent.StarterLoader
 
 func init() {
 	logger.EnableConsole(logger.TraceLevel, false)
-	starterLoader = parent.NewStarterLoader([]parent.Starter{
+	starterLoader = parent.InitStarterLoader([]parent.Starter{
 		&gormstarter.GormStarter{
 			Config: gormstarter.GormConfig{
+				MySQL: &gormstarter.MySQLConfig{
+					DatabaseConfig: gormstarter.DatabaseConfig{
 				Username: "root",
 				Password: "root",
 				Database: "test",
 				Host:     "127.0.0.1",
 				Port:     13306,
+					},
+				},
 			},
 		},
 	})
-	_ = starterLoader.Start()
 }
