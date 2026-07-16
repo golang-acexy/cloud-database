@@ -27,10 +27,7 @@ func (t TeacherMapper) WithTxMapper(tx *gorm.DB) TeacherMapper {
 }
 
 func (t TeacherMapper) CountAll() (total int64) {
-	db, err := t.GormWithTableName()
-	if err != nil {
-		return 0
-	}
+	db := t.TableGormDB()
 	db.Count(&total)
 	return total
 }

@@ -103,7 +103,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if rows, err := teacherRepo.QueryOneByWhere("id = ?", &selected, teacher.ID); err != nil || rows != 1 {
 		t.Fatalf("query one by where failed: rows=%d err=%v", rows, err)
 	}
-	if rows, err := teacherRepo.QueryOneByGORM(&selected, func(db *gorm.DB) { db.Where("id = ?", teacher.ID) }); err != nil || rows != 1 {
+	if rows, err := teacherRepo.QueryOneByGorm(&selected, func(db *gorm.DB) { db.Where("id = ?", teacher.ID) }); err != nil || rows != 1 {
 		t.Fatalf("query one by GORM failed: rows=%d err=%v", rows, err)
 	}
 
@@ -117,7 +117,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if rows, err := teacherRepo.QueryByWhere("name in ?", "id", &list, []string{"rb1", "rb2"}); err != nil || rows != 2 {
 		t.Fatalf("query by where failed: rows=%d err=%v", rows, err)
 	}
-	if rows, err := teacherRepo.QueryByGORM(&list, func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || rows != 2 {
+	if rows, err := teacherRepo.QueryByGorm(&list, func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || rows != 2 {
 		t.Fatalf("query by GORM failed: rows=%d err=%v", rows, err)
 	}
 
@@ -130,18 +130,18 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if count, err := teacherRepo.CountByWhere("name in ?", []string{"rb1", "rb2"}); err != nil || count != 2 {
 		t.Fatalf("unexpected where count: count=%d err=%v", count, err)
 	}
-	if count, err := teacherRepo.CountByGORM(func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || count != 2 {
+	if count, err := teacherRepo.CountByGorm(func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || count != 2 {
 		t.Fatalf("unexpected GORM count: count=%d err=%v", count, err)
 	}
 
 	if teacherRepo.RawMapper().CountAll() == 0 {
 		t.Fatal("expected custom mapper method to return records")
 	}
-	if db, err := teacherRepo.CurrentGORMDB(); err != nil || db == nil {
-		t.Fatalf("current GORM DB unavailable: %v", err)
+	if db := teacherRepo.CurrentGormDB(); db == nil {
+		t.Fatal("current Gorm DB unavailable")
 	}
-	if db, err := teacherRepo.TableGORMDB(); err != nil || db == nil {
-		t.Fatalf("table GORM DB unavailable: %v", err)
+	if db := teacherRepo.TableGormDB(); db == nil {
+		t.Fatal("table Gorm DB unavailable")
 	}
 }
 
@@ -173,7 +173,7 @@ func TestPaginationVariants(t *testing.T) {
 	assertPage("where", pager, err)
 
 	var result []*Teacher
-	total, err := teacherRepo.QueryPageByGORM(
+	total, err := teacherRepo.QueryPageByGorm(
 		func(db *gorm.DB) { db.Where("name = ?", "rpage") },
 		func(db *gorm.DB) { db.Where("name = ?", "rpage").Order("age").Offset(2).Limit(2) },
 		&result,
@@ -247,11 +247,8 @@ func TestTransactionRepositories(t *testing.T) {
 	if count, err := txRepo.CountByName("rtx1"); err != nil || count != 1 {
 		t.Fatalf("custom repository method unavailable in transaction: count=%d err=%v", count, err)
 	}
-	tx, err := txRepo.CurrentGORMDB()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = tx.Rollback().Error; err != nil {
+	tx := txRepo.CurrentGormDB()
+	if err := tx.Rollback().Error; err != nil {
 		t.Fatal(err)
 	}
 	if exists, err := teacherRepo.ExistsByID(manual.ID); err != nil || exists {
@@ -265,10 +262,10 @@ func TestTransactionRepositories(t *testing.T) {
 	externalTx := db.Begin()
 	externalRepo := teacherRepo.WithTxRepo(externalTx)
 	external := &Teacher{Name: "rtx2", Age: 2}
-	if _, err = externalRepo.Save(external); err != nil {
+	if _, err := externalRepo.Save(external); err != nil {
 		t.Fatal(err)
 	}
-	if err = externalTx.Rollback().Error; err != nil {
+	if err := externalTx.Rollback().Error; err != nil {
 		t.Fatal(err)
 	}
 	if exists, err := teacherRepo.ExistsByID(external.ID); err != nil || exists {
@@ -276,7 +273,7 @@ func TestTransactionRepositories(t *testing.T) {
 	}
 
 	var committedID int64
-	if err = teacherRepo.Transaction(func(repo TeacherRepo) error {
+	if err := teacherRepo.Transaction(func(repo TeacherRepo) error {
 		committed := &Teacher{Name: "rtxc", Age: 3}
 		if _, saveErr := repo.Save(committed); saveErr != nil {
 			return saveErr
@@ -293,7 +290,7 @@ func TestTransactionRepositories(t *testing.T) {
 
 	rollbackErr := errors.New("rollback transaction")
 	var rolledBackID int64
-	err = teacherRepo.Transaction(func(repo TeacherRepo) error {
+	err := teacherRepo.Transaction(func(repo TeacherRepo) error {
 		rolledBack := &Teacher{Name: "rtxr", Age: 4}
 		if _, saveErr := repo.Save(rolledBack); saveErr != nil {
 			return saveErr

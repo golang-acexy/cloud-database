@@ -116,9 +116,9 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if teacherRepo.RawMapper() != (TeacherMapper{}) {
 		t.Fatal("RawMapper 应返回构造 Repository 时传入的具体 Mapper")
 	}
-	collection, err := teacherRepo.Collection()
-	if err != nil || collection == nil || collection.Name() != (Teacher{}).CollectionName() {
-		t.Fatalf("Collection 获取失败: collection=%v err=%v", collection, err)
+	collection := teacherRepo.Collection()
+	if collection == nil || collection.Name() != (Teacher{}).CollectionName() {
+		t.Fatalf("Collection 获取失败: collection=%v", collection)
 	}
 }
 

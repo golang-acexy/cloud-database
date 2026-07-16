@@ -7,10 +7,10 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-sql-driver/mysql v1.10.0 h1:Q+1LV8DkHJvSYAdR83XzuhDaTykuDx0l6fkXxoWCWfw=
 github.com/go-sql-driver/mysql v1.10.0/go.mod h1:M+cqaI7+xxXGG9swrdeUIoPG3Y3KCkF0pZej+SK+nWk=
-github.com/golang-acexy/starter-gorm v0.1.28-0.20260715061321-dbe455451822 h1:MoCruoI79TvFC/bRiW1xvDHEKZ8pOTE/zMSJmiN4ln8=
-github.com/golang-acexy/starter-gorm v0.1.28-0.20260715061321-dbe455451822/go.mod h1:iaJzQ0g0xlBusDJaPQ0m823gfONwUUXCq5240cVGRvE=
-github.com/golang-acexy/starter-mongo v0.1.12-0.20260715061457-290f6e0d2009 h1:SP84p/HWPof0esT622FoM8zkV/Jpr0zeloweHx2SdRc=
-github.com/golang-acexy/starter-mongo v0.1.12-0.20260715061457-290f6e0d2009/go.mod h1:Mc7HDsRtO9jtHBE+/lGTMOln85SAW8nCnZGoYGeubCE=
+github.com/golang-acexy/starter-gorm v0.1.28-0.20260716081615-2f3a8a4dc40f h1:GKjqxScf7oa1mIPbBOa8+aVaiXmxoacSQ662pMdmppE=
+github.com/golang-acexy/starter-gorm v0.1.28-0.20260716081615-2f3a8a4dc40f/go.mod h1:iaJzQ0g0xlBusDJaPQ0m823gfONwUUXCq5240cVGRvE=
+github.com/golang-acexy/starter-mongo v0.1.12-0.20260716080541-eb880379b524 h1:RnHWtZXdVU/sI0kxjONIDPnxPoNbTzqL37KyjYduIEQ=
+github.com/golang-acexy/starter-mongo v0.1.12-0.20260716080541-eb880379b524/go.mod h1:Mc7HDsRtO9jtHBE+/lGTMOln85SAW8nCnZGoYGeubCE=
 github.com/golang-acexy/starter-parent v0.1.23-0.20260713093351-c249c35849a4 h1:ghOij6U67J96uBbew3eV+z5UZAsIym2ho/0SM4iAJ/g=
 github.com/golang-acexy/starter-parent v0.1.23-0.20260713093351-c249c35849a4/go.mod h1:4KEH7Dvpyzakucw7/S5sW6rJ+/VbDTfGGmh4BeHnpbQ=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
