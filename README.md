@@ -4,9 +4,15 @@
 
 Repository methods use business verbs such as `Save`, `Query`, `Modify`, and `Remove`. Mapper methods remain aligned with database operations such as `Insert`, `Select`, `Update`, and `Delete`.
 
+## Ecosystem Role
+
+This module is the bridge between infrastructure-oriented mappers and application-oriented business services. It does not open connections; `starter-gorm` or `starter-mongo` must start first, and `cloud-web` BizServices can then consume these repositories.
+
 ## Requirements
 
 Current module Go version: `1.25.8`.
+
+## Installation
 
 ```bash
 go get github.com/golang-acexy/cloud-database
@@ -216,12 +222,9 @@ Use `NewTxRepo` when transaction lifecycle must be controlled manually:
 
 ```go
 txRepo := repo.NewTxRepo()
-tx, err := txRepo.CurrentGORMDB()
-if err != nil {
-	return err
-}
+tx := txRepo.CurrentGormDB()
 
-if _, err = txRepo.Save(&Teacher{Name: "Alice"}); err != nil {
+if _, err := txRepo.Save(&Teacher{Name: "Alice"}); err != nil {
 	tx.Rollback()
 	return err
 }
@@ -234,8 +237,8 @@ Use `WithTxRepo(tx)` to bind an existing `*gorm.DB` transaction. Creating anothe
 
 ```go
 mapper := repo.RawMapper()
-db, err := repo.CurrentGORMDB()
-tableDB, err := repo.TableGORMDB()
+db := repo.CurrentGormDB()
+tableDB := repo.TableGormDB()
 ```
 
 Prefer repository methods for normal business code. Raw access is intended for integrations and queries not represented by the common API.
