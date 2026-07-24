@@ -4,8 +4,8 @@ go 1.25.8
 
 require (
 	github.com/acexy/golang-toolkit v1.25.0
-	github.com/golang-acexy/starter-gorm v0.1.28-0.20260717021519-ce78d355b457
-	github.com/golang-acexy/starter-mongo v0.1.12-0.20260717021346-3050fb76999d
+	github.com/golang-acexy/starter-gorm v1.25.0
+	github.com/golang-acexy/starter-mongo v1.25.0
 	github.com/golang-acexy/starter-parent v1.25.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	gorm.io/gorm v1.31.2
@@ -20,7 +20,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/klauspost/compress v1.19.0 // indirect
+	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
