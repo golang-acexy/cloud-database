@@ -2,129 +2,216 @@ package rds
 
 import (
 	"database/sql"
+	"errors"
 
+	"github.com/acexy/golang-toolkit/logger"
 	"github.com/golang-acexy/cloud-database/databasecloud"
 	"github.com/golang-acexy/starter-gorm/gormstarter"
 	"gorm.io/gorm"
 )
 
-type Repository[B gormstarter.IBaseMapper[M, T], M gormstarter.BaseMapper[T], T gormstarter.IBaseModel] struct {
-	Mapper B // mapper接口的声明类型
-	mapper M // mapper的实际实现
+// Mapper 组合 GORM Mapper 的各项基础能力，并约束事务复制能力。
+// 直接展开各项接口可避免嵌套泛型接口给跨包类型检查带来的额外复杂度。
+type Mapper[M any, T gormstarter.Model] interface {
+	gormstarter.RawMapper
+	gormstarter.QueryMapper[T]
+	gormstarter.InsertMapper[T]
+	gormstarter.UpdateMapper[T]
+	gormstarter.DeleteMapper[T]
+	WithTxMapper(tx *gorm.DB) M
 }
 
-// NewTxRepo 创建一个全新事务数据库服务
-func (g Repository[B, M, T]) NewTxRepo(opts ...*sql.TxOptions) Repository[gormstarter.IBaseMapper[M, T], gormstarter.BaseMapper[T], T] {
-	mapperWithTx := g.Mapper.NewBaseMapperWithTx(opts...)
-	return Repository[gormstarter.IBaseMapper[M, T], gormstarter.BaseMapper[T], T]{mapper: mapperWithTx, Mapper: mapperWithTx}
+// Repository 组合具体 Mapper，并通过 R 保留业务 Repository 类型。
+type Repository[R any, M Mapper[M, T], T gormstarter.Model] struct {
+	mapper  M
+	factory func(Repository[R, M, T]) R
 }
 
-// WithTxRepo 创建一个带有指定事务数据库服务
-func (g Repository[B, M, T]) WithTxRepo(tx *gorm.DB) Repository[gormstarter.IBaseMapper[M, T], gormstarter.BaseMapper[T], T] {
-	mapperWithTx := g.Mapper.GetBaseMapperWithTx(tx)
-	return Repository[gormstarter.IBaseMapper[M, T], gormstarter.BaseMapper[T], T]{mapper: mapperWithTx, Mapper: mapperWithTx}
+// PageQuery 定义关系型数据库分页查询参数。
+type PageQuery struct {
+	OrderBySQL     string
+	SpecifyColumns []string
+}
+
+// NewRepository 创建基础 Repository，并注册业务 Repository 工厂函数。
+func NewRepository[R any, M Mapper[M, T], T gormstarter.Model](mapper M, factory func(Repository[R, M, T]) R) Repository[R, M, T] {
+	if factory == nil {
+		panic(ErrNilRepositoryFactory)
+	}
+	return Repository[R, M, T]{mapper: mapper, factory: factory}
+}
+
+// NewTxRepo 创建绑定新事务的业务 Repository，调用方负责提交或回滚事务。
+// 调用前必须完成 GORM Starter 和 Repository 初始化；事务启动错误由后续数据库操作返回。
+// 若当前 Repository 已绑定事务，将记录错误日志但仍继续尝试创建新事务。
+func (r Repository[R, M, T]) NewTxRepo(opts ...*sql.TxOptions) R {
+	db := r.mapper.CurrentGormDB()
+	warnTransactionRepository(db, "NewTxRepo")
+	tx := db.Begin(opts...)
+	return r.repositoryWithTx(tx)
+}
+
+// WithTxRepo 创建绑定指定事务的业务 Repository，调用方负责保证事务有效并管理其生命周期。
+// 调用前必须通过 NewRepository 完成 Repository 初始化。
+// 若当前 Repository 已绑定事务，将记录错误日志但仍使用传入事务创建新 Repository。
+func (r Repository[R, M, T]) WithTxRepo(tx *gorm.DB) R {
+	warnTransactionRepository(r.mapper.CurrentGormDB(), "WithTxRepo")
+	return r.repositoryWithTx(tx)
+}
+
+func warnTransactionRepository(db *gorm.DB, operation string) {
+	if db == nil || db.Statement == nil {
+		return
+	}
+	if _, ok := db.Statement.ConnPool.(interface {
+		Commit() error
+		Rollback() error
+	}); ok {
+		logger.Logrus().WithField("operation", operation).Errorln("transaction repository creates another transaction repository")
+	}
+}
+
+// Transaction 在新事务中执行业务函数，并自动提交；返回错误或发生 panic 时自动回滚。
+func (r Repository[R, M, T]) Transaction(fn func(R) error, opts ...*sql.TxOptions) (err error) {
+	if fn == nil {
+		return ErrNilTransactionFunc
+	}
+	if r.factory == nil {
+		return ErrRepositoryNotInitialized
+	}
+	db := r.mapper.CurrentGormDB()
+	tx := db.Begin(opts...)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			tx.Rollback()
+			panic(recovered)
+		}
+	}()
+
+	if err = fn(r.repositoryWithTx(tx)); err != nil {
+		if rollbackErr := tx.Rollback().Error; rollbackErr != nil {
+			return errors.Join(err, rollbackErr)
+		}
+		return err
+	}
+	return tx.Commit().Error
+}
+
+func (r Repository[R, M, T]) repositoryWithTx(tx *gorm.DB) R {
+	txRepository := r
+	txRepository.mapper = r.mapper.WithTxMapper(tx)
+	return r.factory(txRepository)
 }
 
 // >>>>>>>>>>>>>>> CRUD 操作API
 
-// RawIMapper 获取原始基础Mapper接口
-func (g Repository[B, M, T]) RawIMapper() B {
-	return g.Mapper
+// RawMapper 获取具体 Mapper
+func (r Repository[R, M, T]) RawMapper() M {
+	return r.mapper
 }
 
-// RawMapper 获取原始基础Mapper实现
-func (g Repository[B, M, T]) RawMapper() M {
-	return g.mapper
+// CurrentGormDB 获取当前 Gorm DB，如果已有事务则返回该事务，否则获取新的 Gorm DB。
+func (r Repository[R, M, T]) CurrentGormDB() *gorm.DB {
+	return r.mapper.CurrentGormDB()
 }
 
-// CurrentGormDB 获取当前的gorm.DB 如果已有事务则返回该事务，否则获取新的gorm.DB
-func (g Repository[B, M, T]) CurrentGormDB() *gorm.DB {
-	return g.Mapper.CurrentGorm()
-}
-
-// GormDBWithTable 获取gorm.DB 且已设置当前mapper对应的表明
-func (g Repository[B, M, T]) GormDBWithTable() *gorm.DB {
-	return g.Mapper.GormWithTableName()
+// TableGormDB 获取已经限定当前 Mapper 表名的 Gorm DB。
+func (r Repository[R, M, T]) TableGormDB() *gorm.DB {
+	return r.mapper.TableGormDB()
 }
 
 // Save 保存数据 默认零值数据也会进行存储 可通过设置excludeColumns排除零值数据
-func (g Repository[B, M, T]) Save(entity *T, excludeColumns ...string) (int64, error) {
-	return g.Mapper.Insert(entity, excludeColumns...)
+func (r Repository[R, M, T]) Save(entity *T, excludeColumns ...string) (int64, error) {
+	return r.mapper.Insert(entity, excludeColumns...)
 }
 
-// SaveExcludeZeroField 保存数据 零值数据不参与保存
-func (g Repository[B, M, T]) SaveExcludeZeroField(entity *T) (int64, error) {
-	return g.Mapper.InsertWithoutZeroField(entity)
+// SaveWithoutZeroFields 保存数据，零值字段不参与保存。
+func (r Repository[R, M, T]) SaveWithoutZeroFields(entity *T) (int64, error) {
+	return r.mapper.InsertWithoutZeroFields(entity)
 }
 
-// SaveUseMap 通过Map类型保存数据 key为列明 value为列值
-func (g Repository[B, M, T]) SaveUseMap(entity map[string]any) (int64, error) {
-	return g.Mapper.InsertUseMap(entity)
+// SaveWithMap 通过Map类型保存数据 key为列明 value为列值
+func (r Repository[R, M, T]) SaveWithMap(entity map[string]any) (int64, error) {
+	return r.mapper.InsertWithMap(entity)
 }
 
 // SaveOrModifyByPrimaryKey 保存/更新数据 (主键冲突则执行更新) 零值也将参与保存
-func (g Repository[B, M, T]) SaveOrModifyByPrimaryKey(entity *T, excludeColumns ...string) (int64, error) {
-	return g.Mapper.InsertOrUpdateByPrimaryKey(entity, excludeColumns...)
+func (r Repository[R, M, T]) SaveOrModifyByPrimaryKey(entity *T, excludeColumns ...string) (int64, error) {
+	return r.mapper.InsertOrUpdateByPrimaryKey(entity, excludeColumns...)
 }
 
 // SaveBatch 批量保存数据 默认零值数据也会进行存储 可通过设置excludeColumns排除零值数据
-func (g Repository[B, M, T]) SaveBatch(entities *[]*T, excludeColumns ...string) (int64, error) {
-	return g.Mapper.InsertBatch(entities, excludeColumns...)
+func (r Repository[R, M, T]) SaveBatch(entities []*T, excludeColumns ...string) (int64, error) {
+	return r.mapper.InsertBatch(entities, excludeColumns...)
 }
 
 // QueryByID 通过主键查询数据
-func (g Repository[B, M, T]) QueryByID(id any, result *T) (int64, error) {
-	return g.Mapper.SelectById(id, result)
+func (r Repository[R, M, T]) QueryByID(id any, result *T) (int64, error) {
+	return r.mapper.SelectByID(id, result)
 }
 
 // QueryByIDs 通过主键查询数据
-func (g Repository[B, M, T]) QueryByIDs(id []any, result *[]*T) (int64, error) {
-	return g.Mapper.SelectByIds(id, result)
+func (r Repository[R, M, T]) QueryByIDs(ids []any, result *[]*T) (int64, error) {
+	return r.mapper.SelectByIDs(ids, result)
+}
+
+// ExistsByID 判断指定主键的数据是否存在。
+func (r Repository[R, M, T]) ExistsByID(id any) (bool, error) {
+	return r.mapper.ExistsByID(id)
 }
 
 // QueryOneByCond 通过条件查询 查询条件零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
-func (g Repository[B, M, T]) QueryOneByCond(condition *T, result *T, specifyColumns ...string) (int64, error) {
-	return g.Mapper.SelectOneByCond(condition, result, specifyColumns...)
+func (r Repository[R, M, T]) QueryOneByCond(condition *T, result *T, specifyColumns ...string) (int64, error) {
+	return r.mapper.SelectOneByCond(condition, result, specifyColumns...)
 }
 
 // QueryByCond 通过条件查询 查询条件零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
-func (g Repository[B, M, T]) QueryByCond(condition *T, sqlOrderBy string, result *[]*T, specifyColumns ...string) (int64, error) {
-	return g.Mapper.SelectByCond(condition, sqlOrderBy, result, specifyColumns...)
+func (r Repository[R, M, T]) QueryByCond(condition *T, orderBySQL string, result *[]*T, specifyColumns ...string) (int64, error) {
+	return r.mapper.SelectByCond(condition, orderBySQL, result, specifyColumns...)
 }
 
 // QueryOneByMap 通过指定字段与值查询数据 解决零值条件问题 specifyColumns 指定只需要查询的数据库字段
-func (g Repository[B, M, T]) QueryOneByMap(condition map[string]any, result *T, specifyColumns ...string) (int64, error) {
-	return g.Mapper.SelectOneByMap(condition, result, specifyColumns...)
+func (r Repository[R, M, T]) QueryOneByMap(condition map[string]any, result *T, specifyColumns ...string) (int64, error) {
+	return r.mapper.SelectOneByMap(condition, result, specifyColumns...)
 }
 
 // QueryByMap 通过指定字段与值查询数据 解决零值条件问题 specifyColumns 指定只需要查询的数据库字段
-func (g Repository[B, M, T]) QueryByMap(condition map[string]any, sqlOrderBy string, result *[]*T, specifyColumns ...string) (int64, error) {
-	return g.Mapper.SelectByMap(condition, sqlOrderBy, result, specifyColumns...)
+func (r Repository[R, M, T]) QueryByMap(condition map[string]any, orderBySQL string, result *[]*T, specifyColumns ...string) (int64, error) {
+	return r.mapper.SelectByMap(condition, orderBySQL, result, specifyColumns...)
 }
 
 // QueryOneByWhere 通过原始Where SQL查询 只需要输入SQL语句和参数 例如 where a = 1 则只需要rawWhereSql: "a = ?"  args = 1
-func (g Repository[B, M, T]) QueryOneByWhere(rawWhereSql string, result *T, args ...any) (int64, error) {
-	return g.Mapper.SelectOneByWhere(rawWhereSql, result, args...)
+func (r Repository[R, M, T]) QueryOneByWhere(rawWhereSQL string, result *T, args ...any) (int64, error) {
+	return r.mapper.SelectOneByWhere(rawWhereSQL, result, args...)
 }
 
 // QueryByWhere 通过原始Where SQL查询 只需要输入SQL语句和参数 例如 where a = 1 则只需要rawWhereSq: "a = ?" args = 1
-func (g Repository[B, M, T]) QueryByWhere(rawWhereSql, orderBy string, result *[]*T, args ...interface{}) (int64, error) {
-	return g.Mapper.SelectByWhere(rawWhereSql, orderBy, result, args...)
+func (r Repository[R, M, T]) QueryByWhere(rawWhereSQL, orderBySQL string, result *[]*T, args ...any) (int64, error) {
+	return r.mapper.SelectByWhere(rawWhereSQL, orderBySQL, result, args...)
 }
 
-// QueryOneByGorm 通过原始Gorm查询单条数据 构建Gorm查询条件
-func (g Repository[B, M, T]) QueryOneByGorm(result *T, rawDb func(*gorm.DB)) (int64, error) {
-	return g.Mapper.SelectOneByGorm(result, rawDb)
+// QueryOneByGorm 通过原始 Gorm 查询单条数据。
+func (r Repository[R, M, T]) QueryOneByGorm(result *T, rawDB func(*gorm.DB)) (int64, error) {
+	return r.mapper.SelectOneByGorm(result, rawDB)
 }
 
-// QueryByGorm 通过原始Gorm查询数据
-func (g Repository[B, M, T]) QueryByGorm(result *[]*T, rawDb func(*gorm.DB)) (int64, error) {
-	return g.Mapper.SelectByGorm(result, rawDb)
+// QueryByGorm 通过原始 Gorm 查询数据。
+func (r Repository[R, M, T]) QueryByGorm(result *[]*T, rawDB func(*gorm.DB)) (int64, error) {
+	return r.mapper.SelectByGorm(result, rawDB)
 }
 
 // QueryPageByCond 通过条件分页查询 零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
-func (g Repository[B, M, T]) QueryPageByCond(condition *T, sqlOrderBy string, pager *databasecloud.Pager[T], specifyColumns ...string) error {
-	total, err := g.Mapper.SelectPageByCond(condition, sqlOrderBy, pager.Number, pager.Size, &pager.Records, specifyColumns...)
+func (r Repository[R, M, T]) QueryPageByCond(condition *T, query PageQuery, pager *databasecloud.Pager[T]) error {
+	total, err := r.mapper.SelectPageByCond(condition, gormstarter.PageQuery{
+		PageNumber:     pager.Number,
+		PageSize:       pager.Size,
+		OrderBySQL:     query.OrderBySQL,
+		SpecifyColumns: query.SpecifyColumns,
+	}, &pager.Records)
 	if err != nil {
 		return err
 	}
@@ -133,8 +220,13 @@ func (g Repository[B, M, T]) QueryPageByCond(condition *T, sqlOrderBy string, pa
 }
 
 // QueryPageByMap 通过指定字段与值查询数据分页查询 解决零值条件问题 specifyColumns 指定只需要查询的数据库字段
-func (g Repository[B, M, T]) QueryPageByMap(condition map[string]any, sqlOrderBy string, pager *databasecloud.Pager[T], specifyColumns ...string) error {
-	total, err := g.Mapper.SelectPageByMap(condition, sqlOrderBy, pager.Number, pager.Size, &pager.Records, specifyColumns...)
+func (r Repository[R, M, T]) QueryPageByMap(condition map[string]any, query PageQuery, pager *databasecloud.Pager[T]) error {
+	total, err := r.mapper.SelectPageByMap(condition, gormstarter.PageQuery{
+		PageNumber:     pager.Number,
+		PageSize:       pager.Size,
+		OrderBySQL:     query.OrderBySQL,
+		SpecifyColumns: query.SpecifyColumns,
+	}, &pager.Records)
 	if err != nil {
 		return err
 	}
@@ -142,9 +234,14 @@ func (g Repository[B, M, T]) QueryPageByMap(condition map[string]any, sqlOrderBy
 	return nil
 }
 
-// QueryPageByWhere 通过原始SQL分页查询 rawWhereSql 例如 where a = 1 则只需要rawWhereSq: "a = ?" args = 1
-func (g Repository[B, M, T]) QueryPageByWhere(rawWhereSql, orderBy string, pager *databasecloud.Pager[T], args []any, specifyColumns ...string) error {
-	total, err := g.Mapper.SelectPageByWhere(rawWhereSql, orderBy, pager.Number, pager.Size, &pager.Records, args, specifyColumns...)
+// QueryPageByWhere 通过原始 SQL 分页查询
+func (r Repository[R, M, T]) QueryPageByWhere(rawWhereSQL string, query PageQuery, pager *databasecloud.Pager[T], args ...any) error {
+	total, err := r.mapper.SelectPageByWhere(rawWhereSQL, gormstarter.PageQuery{
+		PageNumber:     pager.Number,
+		PageSize:       pager.Size,
+		OrderBySQL:     query.OrderBySQL,
+		SpecifyColumns: query.SpecifyColumns,
+	}, &pager.Records, args...)
 	if err != nil {
 		return err
 	}
@@ -152,88 +249,88 @@ func (g Repository[B, M, T]) QueryPageByWhere(rawWhereSql, orderBy string, pager
 	return nil
 }
 
-// QueryPageByGorm 通过原始Gorm查询分页数据
-func (g Repository[B, M, T]) QueryPageByGorm(countRawDb func(*gorm.DB), pageRawDb func(*gorm.DB), result *[]*T) (int64, error) {
-	return g.Mapper.SelectPageByGorm(countRawDb, pageRawDb, result)
+// QueryPageByGorm 通过原始 Gorm 查询分页数据。
+func (r Repository[R, M, T]) QueryPageByGorm(countRawDB func(*gorm.DB), pageRawDB func(*gorm.DB), result *[]*T) (int64, error) {
+	return r.mapper.SelectPageByGorm(countRawDB, pageRawDB, result)
 }
 
 // CountByCond 通过条件查询数据总数
-func (g Repository[B, M, T]) CountByCond(condition *T) (int64, error) {
-	return g.Mapper.CountByCond(condition)
+func (r Repository[R, M, T]) CountByCond(condition *T) (int64, error) {
+	return r.mapper.CountByCond(condition)
 }
 
 // CountByMap 通过指定字段与值查询数据总数 解决零值条件问题
-func (g Repository[B, M, T]) CountByMap(condition map[string]any) (int64, error) {
-	return g.Mapper.CountByMap(condition)
+func (r Repository[R, M, T]) CountByMap(condition map[string]any) (int64, error) {
+	return r.mapper.CountByMap(condition)
 }
 
 // CountByWhere 通过原始SQL查询数据总数
-func (g Repository[B, M, T]) CountByWhere(rawWhereSql string, args ...any) (int64, error) {
-	return g.Mapper.CountByWhere(rawWhereSql, args...)
+func (r Repository[R, M, T]) CountByWhere(rawWhereSQL string, args ...any) (int64, error) {
+	return r.mapper.CountByWhere(rawWhereSQL, args...)
 }
 
-// CountByGorm 通过原始Gorm查询数据总数
-func (g Repository[B, M, T]) CountByGorm(rawDb func(*gorm.DB)) (int64, error) {
-	return g.Mapper.CountByGorm(rawDb)
+// CountByGorm 通过原始 Gorm 查询数据总数。
+func (r Repository[R, M, T]) CountByGorm(rawDB func(*gorm.DB)) (int64, error) {
+	return r.mapper.CountByGorm(rawDB)
 }
 
 // ModifyByID 通过ID更新含零值字段 updateColumns 手动指定需要更新的列
-func (g Repository[B, M, T]) ModifyByID(updated *T, updateColumns ...string) (int64, error) {
-	return g.Mapper.UpdateById(updated, updateColumns...)
+func (r Repository[R, M, T]) ModifyByID(updated *T, updateColumns ...string) (int64, error) {
+	return r.mapper.UpdateByID(updated, updateColumns...)
 }
 
-// ModifyByIDExcludeZeroField 通过ID更新非零值字段 includeZeroFiledColumns 额外指定需要更新零值字段
-func (g Repository[B, M, T]) ModifyByIDExcludeZeroField(updated *T, includeZeroFiledColumns ...string) (int64, error) {
-	return g.Mapper.UpdateByIdWithoutZeroField(updated, includeZeroFiledColumns...)
+// ModifyByIDWithoutZeroFields 通过 ID 更新非零值字段，includeZeroFieldColumns 额外指定需要更新的零值字段。
+func (r Repository[R, M, T]) ModifyByIDWithoutZeroFields(updated *T, includeZeroFieldColumns ...string) (int64, error) {
+	return r.mapper.UpdateByIDWithoutZeroFields(updated, includeZeroFieldColumns...)
 }
 
-// ModifyByIdUseMap 通过ID更新所有map中指定的列和值
-func (g Repository[B, M, T]) ModifyByIdUseMap(updated map[string]any, id any) (int64, error) {
-	return g.Mapper.UpdateByIdUseMap(updated, id)
+// ModifyByIDWithMap 通过ID更新所有map中指定的列和值
+func (r Repository[R, M, T]) ModifyByIDWithMap(updated map[string]any, id any) (int64, error) {
+	return r.mapper.UpdateByIDWithMap(updated, id)
 }
 
 // ModifyByCond 通过条件更新 条件：零值将自动忽略，更新：零值字段将被自动忽略
 // updateColumns 需要指定更新的数据库字段 更新指定字段(支持零值字段)
-func (g Repository[B, M, T]) ModifyByCond(updated, condition *T, updateColumns ...string) (int64, error) {
-	return g.Mapper.UpdateByCond(updated, condition, updateColumns...)
+func (r Repository[R, M, T]) ModifyByCond(updated, condition *T, updateColumns ...string) (int64, error) {
+	return r.mapper.UpdateByCond(updated, condition, updateColumns...)
 }
 
-// ModifyByCondIncludeZeroField 通过条件更新，并指定可以更新的零值字段 includeZeroFiledColumns 额外指定需要更新零值字段
-func (g Repository[B, M, T]) ModifyByCondIncludeZeroField(updated, condition *T, includeZeroFiledColumns []string) (int64, error) {
-	return g.Mapper.UpdateByCondWithZeroField(updated, condition, includeZeroFiledColumns)
+// ModifyByCondWithZeroFields 通过条件更新，并指定可以更新的零值字段。
+func (r Repository[R, M, T]) ModifyByCondWithZeroFields(updated, condition *T, includeZeroFieldColumns ...string) (int64, error) {
+	return r.mapper.UpdateByCondWithZeroFields(updated, condition, includeZeroFieldColumns...)
 }
 
 // ModifyByMap 通过Map类型条件更新
-func (g Repository[B, M, T]) ModifyByMap(updated, condition map[string]any) (int64, error) {
-	return g.Mapper.UpdateByMap(updated, condition)
+func (r Repository[R, M, T]) ModifyByMap(updated, condition map[string]any) (int64, error) {
+	return r.mapper.UpdateByMap(updated, condition)
 }
 
 // ModifyByWhere 通过原始SQL查询条件，更新非零实体字段 Where SQL查询 只需要输入SQL语句和参数 例如 where a = 1 则只需要rawWhereSql: "a = ?" args = 1
-func (g Repository[B, M, T]) ModifyByWhere(updated *T, rawWhereSql string, args ...any) (int64, error) {
-	return g.Mapper.UpdateByWhere(updated, rawWhereSql, args...)
+func (r Repository[R, M, T]) ModifyByWhere(updated *T, rawWhereSQL string, args ...any) (int64, error) {
+	return r.mapper.UpdateByWhere(updated, rawWhereSQL, args...)
 }
 
 // RemoveByID 通过ID删除
-func (g Repository[B, M, T]) RemoveByID(id any) (int64, error) {
-	return g.Mapper.DeleteById(id)
+func (r Repository[R, M, T]) RemoveByID(id any) (int64, error) {
+	return r.mapper.DeleteByID(id)
 }
 
 // RemoveByIDs 通过ID批量删除
-func (g Repository[B, M, T]) RemoveByIDs(ids []any) (int64, error) {
-	return g.Mapper.DeleteById(ids...)
+func (r Repository[R, M, T]) RemoveByIDs(ids []any) (int64, error) {
+	return r.mapper.DeleteByIDs(ids)
 }
 
 // RemoveByCond 通过条件删除 零值字段将被自动忽略
-func (g Repository[B, M, T]) RemoveByCond(condition *T) (int64, error) {
-	return g.Mapper.DeleteByCond(condition)
+func (r Repository[R, M, T]) RemoveByCond(condition *T) (int64, error) {
+	return r.mapper.DeleteByCond(condition)
 }
 
 // RemoveByMap 通过Map类型条件删除
-func (g Repository[B, M, T]) RemoveByMap(condition map[string]any) (int64, error) {
-	return g.Mapper.DeleteByMap(condition)
+func (r Repository[R, M, T]) RemoveByMap(condition map[string]any) (int64, error) {
+	return r.mapper.DeleteByMap(condition)
 }
 
 // RemoveByWhere 通过原始SQL查询条件删除 Where SQL查询 只需要输入SQL语句和参数 例如 where a = 1 则只需要rawWhereSql: "a = ?" args = 1
-func (g Repository[B, M, T]) RemoveByWhere(rawWhereSql string, args ...interface{}) (int64, error) {
-	return g.Mapper.DeleteByWhere(rawWhereSql, args...)
+func (r Repository[R, M, T]) RemoveByWhere(rawWhereSQL string, args ...any) (int64, error) {
+	return r.mapper.DeleteByWhere(rawWhereSQL, args...)
 }

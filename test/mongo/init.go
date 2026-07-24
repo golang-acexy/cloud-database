@@ -9,12 +9,12 @@ import (
 var loader *parent.StarterLoader
 
 func init() {
-	loader = parent.NewStarterLoader([]parent.Starter{
+	loader = parent.InitStarterLoader([]parent.Starter{
 		&mongostarter.MongoStarter{
 			Config: mongostarter.MongoConfig{
-				MongoUri: "mongodb://acexy:tech-acexy@localhost:27017/local?authSource=admin",
+				MongoURI: "mongodb://acexy:tech-acexy@localhost:27017/local?authSource=admin",
 				//Database: "local",
-				BsonOpts: &options.BSONOptions{
+				BSONOptions: &options.BSONOptions{
 					UseJSONStructTags:   true,
 					ObjectIDAsHexString: true,
 					OmitZeroStruct:      true,
@@ -24,9 +24,4 @@ func init() {
 			},
 		},
 	})
-	err := loader.Start()
-	if err != nil {
-		println(err)
-		return
-	}
 }

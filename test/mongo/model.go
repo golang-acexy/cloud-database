@@ -6,20 +6,15 @@ import (
 )
 
 var teacherRepo = TeacherRepo{
-	Repository: mongo.Repository[
-		mongostarter.IBaseMapper[mongostarter.BaseMapper[Teacher], Teacher],
-		mongostarter.BaseMapper[Teacher], Teacher,
-	]{
-		Mapper: TeacherMapper{},
-	},
+	Repository: mongo.NewRepository[TeacherMapper, Teacher](TeacherMapper{}),
 }
 
 type Teacher struct {
 	ID      string `bson:"_id,omitempty" json:"id"`
 	Name    string `bson:"name,omitempty" json:"name"`
 	Sex     uint   `bson:"sex,omitempty" json:"sex"`
-	Age     uint   `json:"age,omitempty"`
-	ClassNo uint   `json:"class_no,omitempty"`
+	Age     uint   `bson:"age,omitempty" json:"age,omitempty"`
+	ClassNo uint   `bson:"class_no,omitempty" json:"class_no,omitempty"`
 }
 
 func (Teacher) CollectionName() string {
@@ -31,11 +26,7 @@ type TeacherMapper struct {
 }
 
 type TeacherRepo struct {
-	mongo.Repository[mongostarter.IBaseMapper[mongostarter.BaseMapper[Teacher], Teacher], mongostarter.BaseMapper[Teacher], Teacher]
-}
-
-func (t TeacherRepo) RawMapper() TeacherMapper {
-	return t.RawIMapper().(TeacherMapper)
+	mongo.Repository[TeacherMapper, Teacher]
 }
 
 func NewTeacherRepo() TeacherRepo {

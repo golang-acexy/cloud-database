@@ -1,19 +1,9 @@
 package gorm
 
 import (
-	"github.com/golang-acexy/cloud-database/databasecloud/rds"
 	"github.com/golang-acexy/starter-gorm/gormstarter"
+	"gorm.io/gorm"
 )
-
-var teacherRepo = TeacherRepo{
-	Repository: rds.Repository[
-		gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher],
-		gormstarter.BaseMapper[Teacher],
-		Teacher,
-	]{
-		Mapper: TeacherMapper{},
-	},
-}
 
 type Teacher struct {
 	ID      int64
@@ -31,22 +21,13 @@ type TeacherMapper struct {
 	gormstarter.BaseMapper[Teacher]
 }
 
+// WithTxMapper 返回绑定事务的新 Mapper，避免修改共享 Mapper 实例。
+func (t TeacherMapper) WithTxMapper(tx *gorm.DB) TeacherMapper {
+	return TeacherMapper{BaseMapper: t.GetBaseMapperWithTx(tx)}
+}
+
 func (t TeacherMapper) CountAll() (total int64) {
-	t.GormWithTableName().Count(&total)
+	db := t.TableGormDB()
+	db.Count(&total)
 	return total
-}
-
-type TeacherRepo struct {
-	rds.Repository[gormstarter.IBaseMapper[gormstarter.BaseMapper[Teacher], Teacher], gormstarter.BaseMapper[Teacher], Teacher]
-}
-
-func (t TeacherRepo) RawMapper() TeacherMapper {
-	return t.RawIMapper().(TeacherMapper)
-}
-
-func NewTeacherRepo() TeacherRepo {
-	return teacherRepo
-}
-func (t TeacherRepo) QueryByMap(result *Teacher) (int64, error) {
-	return t.RawIMapper().SelectOneByMap(map[string]interface{}{"id": 1}, result)
 }
