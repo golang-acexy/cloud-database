@@ -3,9 +3,9 @@ module github.com/golang-acexy/cloud-database
 go 1.25.8
 
 require (
-	github.com/acexy/golang-toolkit v1.25.0
-	github.com/golang-acexy/starter-gorm v1.25.0
-	github.com/golang-acexy/starter-mongo v1.25.0
+	github.com/acexy/golang-toolkit v1.25.2
+	github.com/golang-acexy/starter-gorm v1.25.2-0.20260806024913-88bf588cf8d1
+	github.com/golang-acexy/starter-mongo v1.25.1-0.20260806024926-d8b3fe1c6630
 	github.com/golang-acexy/starter-parent v1.25.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	gorm.io/gorm v1.31.2
@@ -35,5 +35,5 @@ require (
 	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gorm.io/driver/mysql v1.6.0 // indirect
-	gorm.io/driver/postgres v1.6.0 // indirect
+	gorm.io/driver/postgres v1.6.2 // indirect
 )
