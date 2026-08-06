@@ -82,7 +82,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	}
 
 	var one Teacher
-	if err = teacherRepo.QueryOneByCond(&Teacher{Name: scope + "_entity"}, &one, "name", "age"); err != nil || one.Age != 31 {
+	if err = teacherRepo.QueryOneByCond(Teacher{Name: scope + "_entity"}, &one, "name", "age"); err != nil || one.Age != 31 {
 		t.Fatalf("实体条件单条查询失败: result=%+v err=%v", one, err)
 	}
 	if err = teacherRepo.QueryOneByBSON(bson.M{"name": scope + "_bson"}, &one); err != nil || one.Name != scope+"_bson" {
@@ -93,7 +93,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	}
 
 	var records []*Teacher
-	if err = teacherRepo.QueryByCond(&Teacher{ClassNo: 2}, mongostarter.NewOrderBy("age", true), &records); err != nil || len(records) != 2 || records[0].Age != 35 {
+	if err = teacherRepo.QueryByCond(Teacher{ClassNo: 2}, mongostarter.NewOrderBy("age", true), &records); err != nil || len(records) != 2 || records[0].Age != 35 {
 		t.Fatalf("实体条件列表查询失败: records=%+v err=%v", records, err)
 	}
 	if err = teacherRepo.QueryByBSON(bson.M{"class_no": uint(3)}, mongostarter.NewOrderBy("age", false), &records); err != nil || len(records) != 2 || records[0].Age != 36 {
@@ -103,7 +103,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 		t.Fatalf("Options 列表查询失败: records=%+v err=%v", records, err)
 	}
 
-	if count, err := teacherRepo.CountByCond(&Teacher{ClassNo: 2}); err != nil || count != 2 {
+	if count, err := teacherRepo.CountByCond(Teacher{ClassNo: 2}); err != nil || count != 2 {
 		t.Fatalf("实体条件计数失败: count=%d err=%v", count, err)
 	}
 	if count, err := teacherRepo.CountByBSON(bson.M{"class_no": uint(3)}); err != nil || count != 2 {
@@ -142,7 +142,7 @@ func TestPaginationVariants(t *testing.T) {
 		}
 	}
 	pageQuery := databasecloudmongo.PageQuery{OrderBy: mongostarter.NewOrderBy("age", false)}
-	assertPage("Cond", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageByCond(&Teacher{Name: scope}, pageQuery, pager) })
+	assertPage("Cond", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageByCond(Teacher{Name: scope}, pageQuery, pager) })
 	assertPage("BSON", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageByBSON(bson.M{"name": scope}, pageQuery, pager) })
 	assertPage("Options", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageWithOptions(bson.M{"name": scope}, pageQuery, pager) })
 }
@@ -166,8 +166,8 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	}
 	result, err := teacherRepo.ModifyByID(&Teacher{Age: 30}, ids[0]); assertAffected("ModifyByID", 1, result, err)
 	result, err = teacherRepo.ModifyByIDWithBSON(bson.M{"age": uint(31)}, ids[1]); assertAffected("ModifyByIDWithBSON", 1, result, err)
-	result, err = teacherRepo.ModifyOneByCond(&Teacher{Age: 32}, &Teacher{Name: scope + "_cond_one"}); assertAffected("ModifyOneByCond", 1, result, err)
-	result, err = teacherRepo.ModifyByCond(&Teacher{Age: 33}, &Teacher{Name: scope + "_cond_many"}); assertAffected("ModifyByCond", 2, result, err)
+	result, err = teacherRepo.ModifyOneByCond(&Teacher{Age: 32}, Teacher{Name: scope + "_cond_one"}); assertAffected("ModifyOneByCond", 1, result, err)
+	result, err = teacherRepo.ModifyByCond(&Teacher{Age: 33}, Teacher{Name: scope + "_cond_many"}); assertAffected("ModifyByCond", 2, result, err)
 	result, err = teacherRepo.ModifyOneByBSON(bson.M{"age": uint(34)}, bson.M{"name": scope + "_bson_one"}); assertAffected("ModifyOneByBSON", 1, result, err)
 	result, err = teacherRepo.ModifyByBSON(bson.M{"age": uint(35)}, bson.M{"name": scope + "_bson_many"}); assertAffected("ModifyByBSON", 2, result, err)
 	result, err = teacherRepo.ModifyOneWithOptions(bson.M{"name": scope + "_option_one"}, bson.M{"$set": bson.M{"age": uint(36)}}, options.UpdateOne()); assertAffected("ModifyOneWithOptions", 1, result, err)
@@ -184,8 +184,8 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	}
 	result, err = teacherRepo.RemoveByID(removeIDs[0]); assertAffected("RemoveByID", 1, result, err)
 	result, err = teacherRepo.RemoveByIDs([]any{removeIDs[1], removeIDs[2]}); assertAffected("RemoveByIDs", 2, result, err)
-	result, err = teacherRepo.RemoveOneByCond(&Teacher{Name: scope + "_remove_cond_one"}); assertAffected("RemoveOneByCond", 1, result, err)
-	result, err = teacherRepo.RemoveByCond(&Teacher{Name: scope + "_remove_cond_many"}); assertAffected("RemoveByCond", 2, result, err)
+	result, err = teacherRepo.RemoveOneByCond(Teacher{Name: scope + "_remove_cond_one"}); assertAffected("RemoveOneByCond", 1, result, err)
+	result, err = teacherRepo.RemoveByCond(Teacher{Name: scope + "_remove_cond_many"}); assertAffected("RemoveByCond", 2, result, err)
 	result, err = teacherRepo.RemoveOneByBSON(bson.M{"name": scope + "_remove_bson_one"}); assertAffected("RemoveOneByBSON", 1, result, err)
 	result, err = teacherRepo.RemoveByBSON(bson.M{"name": scope + "_remove_bson_many"}); assertAffected("RemoveByBSON", 2, result, err)
 	result, err = teacherRepo.RemoveOneWithOptions(bson.M{"name": scope + "_remove_option_one"}, options.DeleteOne()); assertAffected("RemoveOneWithOptions", 1, result, err)
@@ -197,7 +197,7 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 }
 
 func TestSafetyValidation(t *testing.T) {
-	if _, err := teacherRepo.ModifyByCond(&Teacher{Age: 1}, &Teacher{}); !errors.Is(err, mongostarter.ErrEmptyCondition) {
+	if _, err := teacherRepo.ModifyByCond(&Teacher{Age: 1}, Teacher{}); !errors.Is(err, mongostarter.ErrEmptyCondition) {
 		t.Fatalf("空更新条件应返回 ErrEmptyCondition，实际为 %v", err)
 	}
 	if _, err := teacherRepo.RemoveByBSON(bson.M{}); !errors.Is(err, mongostarter.ErrEmptyCondition) {

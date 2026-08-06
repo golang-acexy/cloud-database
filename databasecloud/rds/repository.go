@@ -31,6 +31,7 @@ type Repository[R any, M Mapper[M, T], T gormstarter.Model] struct {
 type PageQuery struct {
 	OrderBySQL     string
 	SpecifyColumns []string
+	TimeRanges     []gormstarter.TimeRange
 }
 
 // NewRepository 创建基础 Repository，并注册业务 Repository 工厂函数。
@@ -165,12 +166,12 @@ func (r Repository[R, M, T]) ExistsByID(id any) (bool, error) {
 }
 
 // QueryOneByCond 通过条件查询 查询条件零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
-func (r Repository[R, M, T]) QueryOneByCond(condition *T, result *T, specifyColumns ...string) (int64, error) {
+func (r Repository[R, M, T]) QueryOneByCond(condition T, result *T, specifyColumns ...string) (int64, error) {
 	return r.mapper.SelectOneByCond(condition, result, specifyColumns...)
 }
 
 // QueryByCond 通过条件查询 查询条件零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
-func (r Repository[R, M, T]) QueryByCond(condition *T, orderBySQL string, result *[]*T, specifyColumns ...string) (int64, error) {
+func (r Repository[R, M, T]) QueryByCond(condition T, orderBySQL string, result *[]*T, specifyColumns ...string) (int64, error) {
 	return r.mapper.SelectByCond(condition, orderBySQL, result, specifyColumns...)
 }
 
@@ -205,12 +206,13 @@ func (r Repository[R, M, T]) QueryByGorm(result *[]*T, rawDB func(*gorm.DB)) (in
 }
 
 // QueryPageByCond 通过条件分页查询 零值字段将被自动忽略 specifyColumns 指定只需要查询的数据库字段
-func (r Repository[R, M, T]) QueryPageByCond(condition *T, query PageQuery, pager *databasecloud.Pager[T]) error {
+func (r Repository[R, M, T]) QueryPageByCond(condition T, query PageQuery, pager *databasecloud.Pager[T]) error {
 	total, err := r.mapper.SelectPageByCond(condition, gormstarter.PageQuery{
 		PageNumber:     pager.Number,
 		PageSize:       pager.Size,
 		OrderBySQL:     query.OrderBySQL,
 		SpecifyColumns: query.SpecifyColumns,
+		TimeRanges:     query.TimeRanges,
 	}, &pager.Records)
 	if err != nil {
 		return err
@@ -226,6 +228,7 @@ func (r Repository[R, M, T]) QueryPageByMap(condition map[string]any, query Page
 		PageSize:       pager.Size,
 		OrderBySQL:     query.OrderBySQL,
 		SpecifyColumns: query.SpecifyColumns,
+		TimeRanges:     query.TimeRanges,
 	}, &pager.Records)
 	if err != nil {
 		return err
@@ -241,6 +244,7 @@ func (r Repository[R, M, T]) QueryPageByWhere(rawWhereSQL string, query PageQuer
 		PageSize:       pager.Size,
 		OrderBySQL:     query.OrderBySQL,
 		SpecifyColumns: query.SpecifyColumns,
+		TimeRanges:     query.TimeRanges,
 	}, &pager.Records, args...)
 	if err != nil {
 		return err
@@ -255,7 +259,7 @@ func (r Repository[R, M, T]) QueryPageByGorm(countRawDB func(*gorm.DB), pageRawD
 }
 
 // CountByCond 通过条件查询数据总数
-func (r Repository[R, M, T]) CountByCond(condition *T) (int64, error) {
+func (r Repository[R, M, T]) CountByCond(condition T) (int64, error) {
 	return r.mapper.CountByCond(condition)
 }
 
@@ -291,12 +295,12 @@ func (r Repository[R, M, T]) ModifyByIDWithMap(updated map[string]any, id any) (
 
 // ModifyByCond 通过条件更新 条件：零值将自动忽略，更新：零值字段将被自动忽略
 // updateColumns 需要指定更新的数据库字段 更新指定字段(支持零值字段)
-func (r Repository[R, M, T]) ModifyByCond(updated, condition *T, updateColumns ...string) (int64, error) {
+func (r Repository[R, M, T]) ModifyByCond(updated *T, condition T, updateColumns ...string) (int64, error) {
 	return r.mapper.UpdateByCond(updated, condition, updateColumns...)
 }
 
 // ModifyByCondWithZeroFields 通过条件更新，并指定可以更新的零值字段。
-func (r Repository[R, M, T]) ModifyByCondWithZeroFields(updated, condition *T, includeZeroFieldColumns ...string) (int64, error) {
+func (r Repository[R, M, T]) ModifyByCondWithZeroFields(updated *T, condition T, includeZeroFieldColumns ...string) (int64, error) {
 	return r.mapper.UpdateByCondWithZeroFields(updated, condition, includeZeroFieldColumns...)
 }
 
@@ -321,7 +325,7 @@ func (r Repository[R, M, T]) RemoveByIDs(ids []any) (int64, error) {
 }
 
 // RemoveByCond 通过条件删除 零值字段将被自动忽略
-func (r Repository[R, M, T]) RemoveByCond(condition *T) (int64, error) {
+func (r Repository[R, M, T]) RemoveByCond(condition T) (int64, error) {
 	return r.mapper.DeleteByCond(condition)
 }
 
