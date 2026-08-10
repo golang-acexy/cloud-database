@@ -15,11 +15,11 @@ func init() {
 			Config: gormstarter.GormConfig{
 				MySQL: &gormstarter.MySQLConfig{
 					DatabaseConfig: gormstarter.DatabaseConfig{
-				Username: "root",
-				Password: "root",
-				Database: "test",
-				Host:     "127.0.0.1",
-				Port:     13306,
+						Username: "root",
+						Password: "root",
+						Database: "test",
+						Host:     "127.0.0.1",
+						Port:     13306,
 					},
 				},
 			},

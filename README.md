@@ -123,7 +123,7 @@ Typed conditions ignore zero-value fields:
 ```go
 var teacher Teacher
 rows, err := repo.QueryOneByCond(
-	&Teacher{Name: "Alice"},
+	Teacher{Name: "Alice"},
 	&teacher,
 )
 ```
@@ -174,6 +174,27 @@ err := repo.QueryPageByMap(
 ```
 
 RDS pagination supports typed conditions, Map conditions, raw Where SQL, and custom GORM callbacks. Count and page queries use separate GORM sessions in the underlying mapper.
+
+Typed Repository conditions use value semantics. Pass `T` as the condition, `*T` as a single-result destination, and `*[]*T` as a multiple-result destination. Update documents remain pointers while their typed conditions are values.
+
+RDS pagination can apply trusted time-column ranges to both count and page queries:
+
+```go
+start := time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)
+
+err := repo.QueryPageByCond(
+	Teacher{Status: 1},
+	rds.PageQuery{
+		OrderBySQL: "id desc",
+		TimeRanges: []gormstarter.TimeRange{
+			{Field: "created_at", StartTime: &start},
+		},
+	},
+	&pager,
+)
+```
+
+`TimeRanges` is passed unchanged to `starter-gorm`; callers must obtain field names from a trusted whitelist.
 
 ### Modify and Remove
 
@@ -302,6 +323,8 @@ Mongo queries are available in three forms:
 - `ByCond` for typed model conditions
 - `ByBSON` for `bson.M` filters
 - `WithOptions` for native driver filters and options
+
+Typed Mongo conditions also use value semantics; query result destinations remain pointers.
 
 ```go
 var teachers []*Teacher

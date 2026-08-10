@@ -97,7 +97,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if rows, err := teacherRepo.QueryByIDs([]any{batch[0].ID, batch[1].ID}, &selectedBatch); err != nil || rows != 2 || len(selectedBatch) != 2 {
 		t.Fatalf("unexpected IDs result: rows=%d teachers=%+v err=%v", rows, selectedBatch, err)
 	}
-	if rows, err := teacherRepo.QueryOneByCond(&Teacher{Name: "rb1"}, &selected); err != nil || rows != 1 {
+	if rows, err := teacherRepo.QueryOneByCond(Teacher{Name: "rb1"}, &selected); err != nil || rows != 1 {
 		t.Fatalf("query one by condition failed: rows=%d err=%v", rows, err)
 	}
 	if rows, err := teacherRepo.QueryOneByWhere("id = ?", &selected, teacher.ID); err != nil || rows != 1 {
@@ -108,7 +108,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	}
 
 	var list []*Teacher
-	if rows, err := teacherRepo.QueryByCond(&Teacher{Name: "rb1"}, "id", &list); err != nil || rows != 1 {
+	if rows, err := teacherRepo.QueryByCond(Teacher{Name: "rb1"}, "id", &list); err != nil || rows != 1 {
 		t.Fatalf("query by condition failed: rows=%d err=%v", rows, err)
 	}
 	if rows, err := teacherRepo.QueryByMap(map[string]any{"name": "rb2"}, "id", &list); err != nil || rows != 1 {
@@ -121,7 +121,7 @@ func TestSaveAndQueryVariants(t *testing.T) {
 		t.Fatalf("query by GORM failed: rows=%d err=%v", rows, err)
 	}
 
-	if count, err := teacherRepo.CountByCond(&Teacher{Name: "rb1"}); err != nil || count != 1 {
+	if count, err := teacherRepo.CountByCond(Teacher{Name: "rb1"}); err != nil || count != 1 {
 		t.Fatalf("unexpected condition count: count=%d err=%v", count, err)
 	}
 	if count, err := teacherRepo.CountByMap(map[string]any{"name": "rb2"}); err != nil || count != 1 {
@@ -163,7 +163,7 @@ func TestPaginationVariants(t *testing.T) {
 	}
 
 	pager := databasecloud.Pager[Teacher]{Number: 2, Size: 2}
-	err := teacherRepo.QueryPageByCond(&Teacher{Name: "rpage"}, rds.PageQuery{OrderBySQL: "age"}, &pager)
+	err := teacherRepo.QueryPageByCond(Teacher{Name: "rpage"}, rds.PageQuery{OrderBySQL: "age"}, &pager)
 	assertPage("condition", pager, err)
 	pager = databasecloud.Pager[Teacher]{Number: 2, Size: 2}
 	err = teacherRepo.QueryPageByMap(map[string]any{"name": "rpage"}, rds.PageQuery{OrderBySQL: "age", SpecifyColumns: []string{"id", "age"}}, &pager)
@@ -198,10 +198,10 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	if _, err := teacherRepo.ModifyByIDWithMap(map[string]any{"name": "rm4"}, teacher.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := teacherRepo.ModifyByCond(&Teacher{Name: "rm5"}, &Teacher{ID: teacher.ID}); err != nil {
+	if _, err := teacherRepo.ModifyByCond(&Teacher{Name: "rm5"}, Teacher{ID: teacher.ID}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := teacherRepo.ModifyByCondWithZeroFields(&Teacher{Age: 0}, &Teacher{ID: teacher.ID}, "age"); err != nil {
+	if _, err := teacherRepo.ModifyByCondWithZeroFields(&Teacher{Age: 0}, Teacher{ID: teacher.ID}, "age"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := teacherRepo.ModifyByMap(map[string]any{"name": "rm6"}, map[string]any{"id": teacher.ID}); err != nil {
@@ -227,7 +227,7 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	if rows, err := teacherRepo.RemoveByIDs([]any{byIDs1.ID, byIDs2.ID}); err != nil || rows != 2 {
 		t.Fatalf("remove by IDs failed: rows=%d err=%v", rows, err)
 	}
-	if rows, err := teacherRepo.RemoveByCond(&Teacher{ID: byCond.ID}); err != nil || rows != 1 {
+	if rows, err := teacherRepo.RemoveByCond(Teacher{ID: byCond.ID}); err != nil || rows != 1 {
 		t.Fatalf("remove by condition failed: rows=%d err=%v", rows, err)
 	}
 	if rows, err := teacherRepo.RemoveByMap(map[string]any{"id": byMap.ID}); err != nil || rows != 1 {

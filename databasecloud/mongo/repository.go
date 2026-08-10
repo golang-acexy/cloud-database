@@ -81,12 +81,12 @@ func (r Repository[M, T]) ExistsByID(id any, notObjectID ...bool) (bool, error) 
 }
 
 // QueryOneByCond 根据条件查询一条数据
-func (r Repository[M, T]) QueryOneByCond(condition *T, result *T, specifyColumns ...string) error {
+func (r Repository[M, T]) QueryOneByCond(condition T, result *T, specifyColumns ...string) error {
 	return r.mapper.SelectOneByCond(condition, result, specifyColumns...)
 }
 
 // QueryByCond 根据条件查询数据
-func (r Repository[M, T]) QueryByCond(condition *T, orderBy []*mongostarter.OrderBy, result *[]*T, specifyColumns ...string) error {
+func (r Repository[M, T]) QueryByCond(condition T, orderBy []*mongostarter.OrderBy, result *[]*T, specifyColumns ...string) error {
 	return r.mapper.SelectByCond(condition, orderBy, result, specifyColumns...)
 }
 
@@ -111,7 +111,7 @@ func (r Repository[M, T]) QueryWithOptions(filter any, result *[]*T, opts ...opt
 }
 
 // QueryPageByCond 根据条件查询分页数据
-func (r Repository[M, T]) QueryPageByCond(condition *T, query PageQuery, pager *databasecloud.Pager[T]) error {
+func (r Repository[M, T]) QueryPageByCond(condition T, query PageQuery, pager *databasecloud.Pager[T]) error {
 	total, err := r.mapper.SelectPageByCond(condition, mongostarter.PageQuery{PageNumber: pager.Number, PageSize: pager.Size, OrderBy: query.OrderBy, SpecifyColumns: query.SpecifyColumns, FindOptions: query.FindOptions, CountOptions: query.CountOptions}, &pager.Records)
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func (r Repository[M, T]) QueryPageWithOptions(filter any, query PageQuery, page
 }
 
 // CountByCond 根据条件查询统计数据
-func (r Repository[M, T]) CountByCond(condition *T) (int64, error) {
+func (r Repository[M, T]) CountByCond(condition T) (int64, error) {
 	return r.mapper.CountByCond(condition)
 }
 
@@ -166,12 +166,12 @@ func (r Repository[M, T]) ModifyByIDWithBSON(update bson.M, id any, notObjectID 
 }
 
 // ModifyOneByCond 根据条件修改一条数据
-func (r Repository[M, T]) ModifyOneByCond(update, condition *T) (int64, error) {
+func (r Repository[M, T]) ModifyOneByCond(update *T, condition T) (int64, error) {
 	return r.mapper.UpdateOneByCond(update, condition)
 }
 
 // ModifyByCond 根据条件修改数据
-func (r Repository[M, T]) ModifyByCond(update, condition *T) (int64, error) {
+func (r Repository[M, T]) ModifyByCond(update *T, condition T) (int64, error) {
 	return r.mapper.UpdateByCond(update, condition)
 }
 
@@ -206,12 +206,12 @@ func (r Repository[M, T]) RemoveByIDs(ids []any, notObjectID ...bool) (int64, er
 }
 
 // RemoveOneByCond 根据条件删除一条数据
-func (r Repository[M, T]) RemoveOneByCond(condition *T) (int64, error) {
+func (r Repository[M, T]) RemoveOneByCond(condition T) (int64, error) {
 	return r.mapper.DeleteOneByCond(condition)
 }
 
 // RemoveByCond 根据条件删除数据
-func (r Repository[M, T]) RemoveByCond(condition *T) (int64, error) {
+func (r Repository[M, T]) RemoveByCond(condition T) (int64, error) {
 	return r.mapper.DeleteByCond(condition)
 }
 
