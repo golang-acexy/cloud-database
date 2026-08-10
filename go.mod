@@ -3,9 +3,9 @@ module github.com/golang-acexy/cloud-database
 go 1.25.8
 
 require (
-	github.com/acexy/golang-toolkit v1.25.2
-	github.com/golang-acexy/starter-gorm v1.25.2-0.20260806024913-88bf588cf8d1
-	github.com/golang-acexy/starter-mongo v1.25.1-0.20260806024926-d8b3fe1c6630
+	github.com/acexy/golang-toolkit v1.25.3
+	github.com/golang-acexy/starter-gorm v1.25.2
+	github.com/golang-acexy/starter-mongo v1.25.1
 	github.com/golang-acexy/starter-parent v1.25.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	gorm.io/gorm v1.31.2
@@ -20,7 +20,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/klauspost/compress v1.19.1 // indirect
+	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect

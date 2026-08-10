@@ -142,9 +142,15 @@ func TestPaginationVariants(t *testing.T) {
 		}
 	}
 	pageQuery := databasecloudmongo.PageQuery{OrderBy: mongostarter.NewOrderBy("age", false)}
-	assertPage("Cond", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageByCond(Teacher{Name: scope}, pageQuery, pager) })
-	assertPage("BSON", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageByBSON(bson.M{"name": scope}, pageQuery, pager) })
-	assertPage("Options", func(pager *databasecloud.Pager[Teacher]) error { return teacherRepo.QueryPageWithOptions(bson.M{"name": scope}, pageQuery, pager) })
+	assertPage("Cond", func(pager *databasecloud.Pager[Teacher]) error {
+		return teacherRepo.QueryPageByCond(Teacher{Name: scope}, pageQuery, pager)
+	})
+	assertPage("BSON", func(pager *databasecloud.Pager[Teacher]) error {
+		return teacherRepo.QueryPageByBSON(bson.M{"name": scope}, pageQuery, pager)
+	})
+	assertPage("Options", func(pager *databasecloud.Pager[Teacher]) error {
+		return teacherRepo.QueryPageWithOptions(bson.M{"name": scope}, pageQuery, pager)
+	})
 }
 
 func TestModifyAndRemoveVariants(t *testing.T) {
@@ -164,14 +170,22 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 			t.Fatalf("%s 影响数量不正确: affected=%d expected=%d err=%v", name, affected, expected, err)
 		}
 	}
-	result, err := teacherRepo.ModifyByID(&Teacher{Age: 30}, ids[0]); assertAffected("ModifyByID", 1, result, err)
-	result, err = teacherRepo.ModifyByIDWithBSON(bson.M{"age": uint(31)}, ids[1]); assertAffected("ModifyByIDWithBSON", 1, result, err)
-	result, err = teacherRepo.ModifyOneByCond(&Teacher{Age: 32}, Teacher{Name: scope + "_cond_one"}); assertAffected("ModifyOneByCond", 1, result, err)
-	result, err = teacherRepo.ModifyByCond(&Teacher{Age: 33}, Teacher{Name: scope + "_cond_many"}); assertAffected("ModifyByCond", 2, result, err)
-	result, err = teacherRepo.ModifyOneByBSON(bson.M{"age": uint(34)}, bson.M{"name": scope + "_bson_one"}); assertAffected("ModifyOneByBSON", 1, result, err)
-	result, err = teacherRepo.ModifyByBSON(bson.M{"age": uint(35)}, bson.M{"name": scope + "_bson_many"}); assertAffected("ModifyByBSON", 2, result, err)
-	result, err = teacherRepo.ModifyOneWithOptions(bson.M{"name": scope + "_option_one"}, bson.M{"$set": bson.M{"age": uint(36)}}, options.UpdateOne()); assertAffected("ModifyOneWithOptions", 1, result, err)
-	result, err = teacherRepo.ModifyWithOptions(bson.M{"name": scope + "_option_many"}, bson.M{"$set": bson.M{"age": uint(37)}}, options.UpdateMany()); assertAffected("ModifyWithOptions", 2, result, err)
+	result, err := teacherRepo.ModifyByID(&Teacher{Age: 30}, ids[0])
+	assertAffected("ModifyByID", 1, result, err)
+	result, err = teacherRepo.ModifyByIDWithBSON(bson.M{"age": uint(31)}, ids[1])
+	assertAffected("ModifyByIDWithBSON", 1, result, err)
+	result, err = teacherRepo.ModifyOneByCond(&Teacher{Age: 32}, Teacher{Name: scope + "_cond_one"})
+	assertAffected("ModifyOneByCond", 1, result, err)
+	result, err = teacherRepo.ModifyByCond(&Teacher{Age: 33}, Teacher{Name: scope + "_cond_many"})
+	assertAffected("ModifyByCond", 2, result, err)
+	result, err = teacherRepo.ModifyOneByBSON(bson.M{"age": uint(34)}, bson.M{"name": scope + "_bson_one"})
+	assertAffected("ModifyOneByBSON", 1, result, err)
+	result, err = teacherRepo.ModifyByBSON(bson.M{"age": uint(35)}, bson.M{"name": scope + "_bson_many"})
+	assertAffected("ModifyByBSON", 2, result, err)
+	result, err = teacherRepo.ModifyOneWithOptions(bson.M{"name": scope + "_option_one"}, bson.M{"$set": bson.M{"age": uint(36)}}, options.UpdateOne())
+	assertAffected("ModifyOneWithOptions", 1, result, err)
+	result, err = teacherRepo.ModifyWithOptions(bson.M{"name": scope + "_option_many"}, bson.M{"$set": bson.M{"age": uint(37)}}, options.UpdateMany())
+	assertAffected("ModifyWithOptions", 2, result, err)
 
 	removeIDs, err := teacherRepo.SaveBatch([]*Teacher{
 		{Name: scope + "_remove_id"}, {Name: scope + "_remove_ids_1"}, {Name: scope + "_remove_ids_2"},
@@ -182,14 +196,22 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	if err != nil || len(removeIDs) != 12 {
 		t.Fatalf("准备删除数据失败: ids=%v err=%v", removeIDs, err)
 	}
-	result, err = teacherRepo.RemoveByID(removeIDs[0]); assertAffected("RemoveByID", 1, result, err)
-	result, err = teacherRepo.RemoveByIDs([]any{removeIDs[1], removeIDs[2]}); assertAffected("RemoveByIDs", 2, result, err)
-	result, err = teacherRepo.RemoveOneByCond(Teacher{Name: scope + "_remove_cond_one"}); assertAffected("RemoveOneByCond", 1, result, err)
-	result, err = teacherRepo.RemoveByCond(Teacher{Name: scope + "_remove_cond_many"}); assertAffected("RemoveByCond", 2, result, err)
-	result, err = teacherRepo.RemoveOneByBSON(bson.M{"name": scope + "_remove_bson_one"}); assertAffected("RemoveOneByBSON", 1, result, err)
-	result, err = teacherRepo.RemoveByBSON(bson.M{"name": scope + "_remove_bson_many"}); assertAffected("RemoveByBSON", 2, result, err)
-	result, err = teacherRepo.RemoveOneWithOptions(bson.M{"name": scope + "_remove_option_one"}, options.DeleteOne()); assertAffected("RemoveOneWithOptions", 1, result, err)
-	result, err = teacherRepo.RemoveWithOptions(bson.M{"name": scope + "_remove_option_many"}, options.DeleteMany()); assertAffected("RemoveWithOptions", 2, result, err)
+	result, err = teacherRepo.RemoveByID(removeIDs[0])
+	assertAffected("RemoveByID", 1, result, err)
+	result, err = teacherRepo.RemoveByIDs([]any{removeIDs[1], removeIDs[2]})
+	assertAffected("RemoveByIDs", 2, result, err)
+	result, err = teacherRepo.RemoveOneByCond(Teacher{Name: scope + "_remove_cond_one"})
+	assertAffected("RemoveOneByCond", 1, result, err)
+	result, err = teacherRepo.RemoveByCond(Teacher{Name: scope + "_remove_cond_many"})
+	assertAffected("RemoveByCond", 2, result, err)
+	result, err = teacherRepo.RemoveOneByBSON(bson.M{"name": scope + "_remove_bson_one"})
+	assertAffected("RemoveOneByBSON", 1, result, err)
+	result, err = teacherRepo.RemoveByBSON(bson.M{"name": scope + "_remove_bson_many"})
+	assertAffected("RemoveByBSON", 2, result, err)
+	result, err = teacherRepo.RemoveOneWithOptions(bson.M{"name": scope + "_remove_option_one"}, options.DeleteOne())
+	assertAffected("RemoveOneWithOptions", 1, result, err)
+	result, err = teacherRepo.RemoveWithOptions(bson.M{"name": scope + "_remove_option_many"}, options.DeleteMany())
+	assertAffected("RemoveWithOptions", 2, result, err)
 	exists, err := teacherRepo.ExistsByID(removeIDs[0])
 	if err != nil || exists {
 		t.Fatalf("删除后的文档不应存在: exists=%v err=%v", exists, err)
