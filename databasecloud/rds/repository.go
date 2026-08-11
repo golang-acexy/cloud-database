@@ -36,6 +36,9 @@ type QueryOptions = gormstarter.QueryOptions
 // PageOptions 是 GORM 分页选项在 RDS Repository 层的门面别名。
 type PageOptions = gormstarter.PageOptions
 
+// TimeRange 是 GORM 时间范围条件在 RDS Repository 层的门面别名。
+type TimeRange = gormstarter.TimeRange
+
 // CondQuery 是 GORM 实体条件查询在 RDS Repository 层的门面别名。
 type CondQuery[T gormstarter.Model] = gormstarter.CondQuery[T]
 

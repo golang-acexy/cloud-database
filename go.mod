@@ -4,8 +4,8 @@ go 1.25.8
 
 require (
 	github.com/acexy/golang-toolkit v1.25.3
-	github.com/golang-acexy/starter-gorm v1.25.2
-	github.com/golang-acexy/starter-mongo v1.25.1
+	github.com/golang-acexy/starter-gorm v1.25.3-0.20260811085024-07d51cb120b2
+	github.com/golang-acexy/starter-mongo v1.25.2-0.20260811085024-0759286c118d
 	github.com/golang-acexy/starter-parent v1.25.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	gorm.io/gorm v1.31.2
