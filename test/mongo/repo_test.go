@@ -72,41 +72,40 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if err != nil || !exists {
 		t.Fatalf("已保存文档应存在: exists=%v err=%v", exists, err)
 	}
-	var byID Teacher
-	if err = teacherRepo.QueryByID(id, &byID); err != nil || byID.Name != scope+"_entity" {
+	byID, err := teacherRepo.QueryByID(id)
+	if err != nil || byID.Name != scope+"_entity" {
 		t.Fatalf("按 ID 查询结果不正确: result=%+v err=%v", byID, err)
 	}
-	var byIDs []*Teacher
-	if err = teacherRepo.QueryByIDs([]any{id, bsonID}, &byIDs); err != nil || len(byIDs) != 2 {
+	byIDs, err := teacherRepo.QueryByIDs([]any{id, bsonID})
+	if err != nil || len(byIDs) != 2 {
 		t.Fatalf("按 IDs 查询结果不正确: size=%d err=%v", len(byIDs), err)
 	}
 
-	var one Teacher
-	if err = teacherRepo.QueryOneByCond(Teacher{Name: scope + "_entity"}, &one, "name", "age"); err != nil || one.Age != 31 {
+	one, err := teacherRepo.QueryOneByCond(databasecloudmongo.NewCondQuery(Teacher{Name: scope + "_entity"}).Select("name", "age"))
+	if err != nil || one.Age != 31 {
 		t.Fatalf("实体条件单条查询失败: result=%+v err=%v", one, err)
 	}
-	if err = teacherRepo.QueryOneByBSON(bson.M{"name": scope + "_bson"}, &one); err != nil || one.Name != scope+"_bson" {
+	one, err = teacherRepo.QueryOneByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"name": scope + "_bson"}}); if err != nil || one.Name != scope+"_bson" {
 		t.Fatalf("BSON 单条查询失败: result=%+v err=%v", one, err)
 	}
-	if err = teacherRepo.QueryOneWithOptions(bson.M{"name": scope + "_options"}, &one, options.FindOne().SetProjection(bson.M{"name": 1})); err != nil || one.Name != scope+"_options" {
+	one, err = teacherRepo.QueryOneWithOptions(bson.M{"name": scope + "_options"}, options.FindOne().SetProjection(bson.M{"name": 1})); if err != nil || one.Name != scope+"_options" {
 		t.Fatalf("Options 单条查询失败: result=%+v err=%v", one, err)
 	}
 
-	var records []*Teacher
-	if err = teacherRepo.QueryByCond(Teacher{ClassNo: 2}, mongostarter.NewOrderBy("age", true), &records); err != nil || len(records) != 2 || records[0].Age != 35 {
+	records, err := teacherRepo.QueryByCond(databasecloudmongo.NewCondQuery(Teacher{ClassNo: 2}).WithOrderBy(mongostarter.OrderBy{Column: "age", Desc: true}).WithLimit(1)); if err != nil || len(records) != 1 || records[0].Age != 35 {
 		t.Fatalf("实体条件列表查询失败: records=%+v err=%v", records, err)
 	}
-	if err = teacherRepo.QueryByBSON(bson.M{"class_no": uint(3)}, mongostarter.NewOrderBy("age", false), &records); err != nil || len(records) != 2 || records[0].Age != 36 {
+	records, err = teacherRepo.QueryByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"class_no": uint(3)}, QueryOptions: databasecloudmongo.QueryOptions{OrderBy: mongostarter.NewOrderBy("age", false)}}); if err != nil || len(records) != 2 || records[0].Age != 36 {
 		t.Fatalf("BSON 列表查询失败: records=%+v err=%v", records, err)
 	}
-	if err = teacherRepo.QueryWithOptions(bson.M{"class_no": uint(4)}, &records, options.Find().SetSort(bson.D{{Key: "age", Value: -1}})); err != nil || len(records) != 2 || records[0].Age != 39 {
+	records, err = teacherRepo.QueryWithOptions(bson.M{"class_no": uint(4)}, options.Find().SetSort(bson.D{{Key: "age", Value: -1}})); if err != nil || len(records) != 2 || records[0].Age != 39 {
 		t.Fatalf("Options 列表查询失败: records=%+v err=%v", records, err)
 	}
 
-	if count, err := teacherRepo.CountByCond(Teacher{ClassNo: 2}); err != nil || count != 2 {
+	if count, err := teacherRepo.CountByCond(databasecloudmongo.CondQuery[Teacher]{Condition: Teacher{ClassNo: 2}}); err != nil || count != 2 {
 		t.Fatalf("实体条件计数失败: count=%d err=%v", count, err)
 	}
-	if count, err := teacherRepo.CountByBSON(bson.M{"class_no": uint(3)}); err != nil || count != 2 {
+	if count, err := teacherRepo.CountByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"class_no": uint(3)}}); err != nil || count != 2 {
 		t.Fatalf("BSON 计数失败: count=%d err=%v", count, err)
 	}
 	if count, err := teacherRepo.CountWithOptions(bson.M{"class_no": uint(4)}, options.Count()); err != nil || count != 2 {
@@ -131,26 +130,21 @@ func TestPaginationVariants(t *testing.T) {
 	if ids, err := teacherRepo.SaveBatch(entities); err != nil || len(ids) != 5 {
 		t.Fatalf("准备分页数据失败: ids=%v err=%v", ids, err)
 	}
-	assertPage := func(name string, query func(*databasecloud.Pager[Teacher]) error) {
+	assertPage := func(name string, pager databasecloud.Pager[Teacher], err error) {
 		t.Helper()
-		pager := databasecloud.Pager[Teacher]{Number: 2, Size: 2}
-		if err := query(&pager); err != nil {
+		if err != nil {
 			t.Fatalf("%s 分页失败: %v", name, err)
 		}
 		if pager.Total != 5 || len(pager.Records) != 2 || pager.Records[0].Age != 23 {
 			t.Fatalf("%s 分页结果不正确: %+v", name, pager)
 		}
 	}
-	pageQuery := databasecloudmongo.PageQuery{OrderBy: mongostarter.NewOrderBy("age", false)}
-	assertPage("Cond", func(pager *databasecloud.Pager[Teacher]) error {
-		return teacherRepo.QueryPageByCond(Teacher{Name: scope}, pageQuery, pager)
-	})
-	assertPage("BSON", func(pager *databasecloud.Pager[Teacher]) error {
-		return teacherRepo.QueryPageByBSON(bson.M{"name": scope}, pageQuery, pager)
-	})
-	assertPage("Options", func(pager *databasecloud.Pager[Teacher]) error {
-		return teacherRepo.QueryPageWithOptions(bson.M{"name": scope}, pageQuery, pager)
-	})
+	pager, err := teacherRepo.QueryPageByCond(databasecloudmongo.NewPageQuery(Teacher{Name: scope}, 2, 2).WithOrderBy(mongostarter.OrderBy{Column: "age"}))
+	assertPage("Cond", pager, err)
+	pager, err = teacherRepo.QueryPageByBSON(databasecloudmongo.NewBSONPageQuery(bson.M{"name": scope}, 2, 2).WithOrderBy(mongostarter.OrderBy{Column: "age"}))
+	assertPage("BSON", pager, err)
+	pager, err = teacherRepo.QueryPageWithOptions(databasecloudmongo.NewFilterPageQuery(bson.M{"name": scope}, 2, 2).WithOrderBy(mongostarter.OrderBy{Column: "age"}))
+	assertPage("Options", pager, err)
 }
 
 func TestModifyAndRemoveVariants(t *testing.T) {
@@ -228,11 +222,25 @@ func TestSafetyValidation(t *testing.T) {
 	if _, err := teacherRepo.RemoveByIDs(nil); !errors.Is(err, mongostarter.ErrEmptyIDs) {
 		t.Fatalf("空 ID 列表应返回 ErrEmptyIDs，实际为 %v", err)
 	}
-	var result Teacher
-	if err := teacherRepo.QueryByID("invalid-object-id", &result); err == nil {
+	if _, err := teacherRepo.QueryByID("invalid-object-id"); err == nil {
 		t.Fatal("非法 ObjectID 应返回错误")
 	}
-	if err := teacherRepo.QueryOneByBSON(bson.M{"name": "cloud_database_missing_record"}, &result); !errors.Is(err, drivermongo.ErrNoDocuments) {
+	if _, err := teacherRepo.QueryOneByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"name": "cloud_database_missing_record"}}); !errors.Is(err, drivermongo.ErrNoDocuments) {
 		t.Fatalf("查询不存在文档应返回 mongo.ErrNoDocuments，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryOneByCond(databasecloudmongo.NewCondQuery(Teacher{Name: "cloud_database_missing_record"})); !errors.Is(err, drivermongo.ErrNoDocuments) {
+		t.Fatalf("实体条件查询不存在文档应返回 mongo.ErrNoDocuments，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryOneWithOptions(bson.M{"name": "cloud_database_missing_record"}); !errors.Is(err, drivermongo.ErrNoDocuments) {
+		t.Fatalf("原生查询不存在文档应返回 mongo.ErrNoDocuments，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryPageByCond(databasecloudmongo.NewPageQuery(Teacher{}, 0, 10)); !errors.Is(err, mongostarter.ErrInvalidPage) {
+		t.Fatalf("非法实体分页参数应返回 ErrInvalidPage，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryPageByBSON(databasecloudmongo.NewBSONPageQuery(bson.M{}, 1, 0)); !errors.Is(err, mongostarter.ErrInvalidPage) {
+		t.Fatalf("非法 BSON 分页参数应返回 ErrInvalidPage，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryPageWithOptions(databasecloudmongo.NewFilterPageQuery(bson.M{}, -1, 10)); !errors.Is(err, mongostarter.ErrInvalidPage) {
+		t.Fatalf("非法原生分页参数应返回 ErrInvalidPage，实际为 %v", err)
 	}
 }

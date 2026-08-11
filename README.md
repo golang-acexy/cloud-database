@@ -121,21 +121,16 @@ rows, err = repo.SaveBatch([]*Teacher{
 Typed conditions ignore zero-value fields:
 
 ```go
-var teacher Teacher
-rows, err := repo.QueryOneByCond(
-	Teacher{Name: "Alice"},
-	&teacher,
-)
+teacher, err := repo.QueryOneByCond(rds.CondQuery[Teacher]{Condition: Teacher{Name: "Alice"}})
 ```
 
 Use Map conditions when zero is a meaningful query value:
 
 ```go
-var teachers []*Teacher
-rows, err := repo.QueryByMap(
-	map[string]any{"age": 0},
-	"id desc",
-	&teachers,
+teachers, err := repo.QueryByMap(
+	rds.NewMapQuery(map[string]any{"age": 0}).
+		OrderBy("id desc").
+		WithLimit(20),
 )
 ```
 
@@ -147,6 +142,14 @@ Other query forms include:
 - `QueryOneByGORM` and `QueryByGORM`
 - `CountByCond`, `CountByMap`, `CountByWhere`, and `CountByGORM`
 
+Count methods use the same Repository query structures as list queries:
+
+```go
+total, err := repo.CountByMap(
+	rds.MapQuery{Condition: map[string]any{"status": 1}},
+)
+```
+
 Raw GORM callbacks receive the current session and mutate that session directly:
 
 ```go
@@ -155,42 +158,78 @@ rows, err := repo.QueryByGORM(&teachers, func(db *gorm.DB) {
 })
 ```
 
+### Type-safe Wrappers
+
+RDS repositories directly reuse the Wrapper and Column types provided by `starter-gorm`; the Repository layer does not define another query language.
+
+```go
+c := repo.RawMapper().Columns()
+
+teachers, err := repo.QueryByWrapper(
+	repo.Wrapper().
+		Ge(c.Age, 18).
+		Select(c.ID, c.Name).
+		OrderByDesc(c.ID),
+)
+
+total, err := repo.CountByWrapper(
+	repo.Wrapper().Ge(c.Age, 18),
+)
+```
+
+Use the independent pagination Wrapper for page queries:
+
+```go
+pager, err := repo.QueryPageByWrapper(
+	repo.PageWrapper(1, 20).
+		Ge(c.Age, 18).
+		OrderByDesc(c.ID),
+)
+```
+
+Updates use the same field metadata and condition operations with explicit assignments:
+
+```go
+rows, err := repo.ModifyByWrapper(
+	repo.UpdateWrapper().
+		Eq(c.ID, teacherID).
+		Set(c.Age, 0),
+)
+```
+
+`PageWrapper` does not expose `Limit` or `Offset`. `UpdateWrapper` requires at least one condition and one `Set`; explicit zero and `nil` values are retained.
+
 ### Pagination
 
 ```go
-pager := databasecloud.Pager[Teacher]{
-	Number: 1,
-	Size:   20,
-}
-
-err := repo.QueryPageByMap(
-	map[string]any{"age": 18},
-	rds.PageQuery{
-		OrderBySQL:     "id desc",
-		SpecifyColumns: []string{"id", "name", "age"},
-	},
-	&pager,
+pager, err := repo.QueryPageByMap(
+	rds.NewMapPageQuery(map[string]any{"age": 18}, 1, 20).
+		OrderBy("id desc").
+		Select("id", "name", "age"),
 )
 ```
 
 RDS pagination supports typed conditions, Map conditions, raw Where SQL, and custom GORM callbacks. Count and page queries use separate GORM sessions in the underlying mapper.
 
-Typed Repository conditions use value semantics. Pass `T` as the condition, `*T` as a single-result destination, and `*[]*T` as a multiple-result destination. Update documents remain pointers while their typed conditions are values.
+Typed Repository conditions use value semantics. Repository queries create and return their result values directly; only low-level mappers accept result pointers.
 
 RDS pagination can apply trusted time-column ranges to both count and page queries:
 
 ```go
 start := time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)
 
-err := repo.QueryPageByCond(
-	Teacher{Status: 1},
-	rds.PageQuery{
-		OrderBySQL: "id desc",
-		TimeRanges: []gormstarter.TimeRange{
-			{Field: "created_at", StartTime: &start},
+pager, err := repo.QueryPageByCond(
+	rds.PageQuery[Teacher]{
+		Condition: Teacher{Status: 1},
+		PageOptions: rds.PageOptions{
+			Number:     1,
+			Size:       20,
+			OrderBySQL: "id desc",
+			TimeRanges: []gormstarter.TimeRange{
+				{Field: "created_at", StartTime: &start},
+			},
 		},
 	},
-	&pager,
 )
 ```
 
@@ -327,44 +366,41 @@ Mongo queries are available in three forms:
 Typed Mongo conditions also use value semantics; query result destinations remain pointers.
 
 ```go
-var teachers []*Teacher
-err := repo.QueryByBSON(
-	bson.M{"age": bson.M{"$gte": 18}},
-	mongostarter.NewOrderBy("age", true),
-	&teachers,
+teachers, err := repo.QueryByBSON(
+	mongo.NewBSONQuery(bson.M{"age": bson.M{"$gte": 18}}).
+		WithOrderBy(mongostarter.OrderBy{Column: "age", Desc: true}).
+		WithLimit(20),
 )
 ```
 
 Pagination uses the shared result and Mongo-specific query options:
 
 ```go
-pager := databasecloud.Pager[Teacher]{Number: 1, Size: 20}
-
-err := repo.QueryPageByBSON(
-	bson.M{"age": bson.M{"$gte": 18}},
-	mongo.PageQuery{
-		OrderBy:        mongostarter.NewOrderBy("age", true),
-		SpecifyColumns: []string{"name", "age"},
-	},
-	&pager,
+pager, err := repo.QueryPageByBSON(
+	mongo.NewBSONPageQuery(bson.M{"age": bson.M{"$gte": 18}}, 1, 20).
+		WithOrderBy(mongostarter.OrderBy{Column: "age", Desc: true}).
+		Select("name", "age"),
 )
 ```
 
-`PageQuery` also accepts native `FindOptions` and `CountOptions`.
+`PageOptions` also accepts native `FindOptions` and `CountOptions`.
+
+RDS and Mongo `QueryOptions.Limit` apply only to ordinary list queries. Zero leaves results unrestricted, negative values return the underlying range error, and pagination remains controlled exclusively by `Number/Size`.
+
+The `rds` and `mongo` query types are facade aliases of their starter-layer counterparts. RDS wrapper types use the same facade pattern, so application Repository extensions can declare `rds.QueryWrapper`, `rds.PageWrapper`, or `rds.UpdateWrapper` without importing `starter-gorm`. Query and wrapper behavior remains implemented in the corresponding starter module.
 
 ### ID Handling
 
 String IDs are interpreted as MongoDB ObjectID hex strings by default:
 
 ```go
-var teacher Teacher
-err := repo.QueryByID("507f1f77bcf86cd799439011", &teacher)
+teacher, err := repo.QueryByID("507f1f77bcf86cd799439011")
 ```
 
 Pass `true` when the collection uses ordinary string IDs:
 
 ```go
-err := repo.QueryByID("teacher-1001", &teacher, true)
+teacher, err := repo.QueryByID("teacher-1001", true)
 ```
 
 The same option applies to ID query, update, existence, and remove methods.
