@@ -26,11 +26,11 @@ func NewTeacherRepo() TeacherRepo {
 	return TeacherRepo{Repository: repository}
 }
 func (t TeacherRepo) QueryTeacherByMap(result *Teacher) (int64, error) {
-	return t.RawMapper().SelectOneByMap(map[string]any{"id": 1}, result)
+	return t.RawMapper().SelectOneByMap(gormstarter.MapQuery{Condition: map[string]any{"id": 1}}, result)
 }
 
 func (t TeacherRepo) CountByName(name string) (int64, error) {
-	return t.CountByMap(map[string]any{"name": name})
+	return t.CountByMap(rds.MapQuery{Condition: map[string]any{"name": name}})
 }
 
 func saveTeacher(t *testing.T, name string, age uint) *Teacher {
@@ -74,9 +74,9 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if rows, err := teacherRepo.SaveWithMap(map[string]any{"name": "rmap", "age": 22}); err != nil || rows != 1 {
 		t.Fatalf("save map failed: rows=%d err=%v", rows, err)
 	}
-	var mapTeacher Teacher
-	if rows, err := teacherRepo.QueryOneByMap(map[string]any{"name": "rmap"}, &mapTeacher); err != nil || rows != 1 {
-		t.Fatalf("query map teacher failed: rows=%d err=%v", rows, err)
+	mapTeacher, err := teacherRepo.QueryOneByMap(rds.MapQuery{Condition: map[string]any{"name": "rmap"}})
+	if err != nil {
+		t.Fatalf("query map teacher failed: err=%v", err)
 	}
 	defer removeTeachers(t, mapTeacher.ID)
 
@@ -89,45 +89,45 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if err != nil || !exists {
 		t.Fatalf("expected teacher to exist: exists=%v err=%v", exists, err)
 	}
-	var selected Teacher
-	if rows, err := teacherRepo.QueryByID(teacher.ID, &selected); err != nil || rows != 1 || selected.Name != "rup" {
-		t.Fatalf("unexpected ID result: rows=%d teacher=%+v err=%v", rows, selected, err)
+	selected, err := teacherRepo.QueryByID(teacher.ID)
+	if err != nil || selected.Name != "rup" {
+		t.Fatalf("unexpected ID result: teacher=%+v err=%v", selected, err)
 	}
-	var selectedBatch []*Teacher
-	if rows, err := teacherRepo.QueryByIDs([]any{batch[0].ID, batch[1].ID}, &selectedBatch); err != nil || rows != 2 || len(selectedBatch) != 2 {
-		t.Fatalf("unexpected IDs result: rows=%d teachers=%+v err=%v", rows, selectedBatch, err)
+	selectedBatch, err := teacherRepo.QueryByIDs([]any{batch[0].ID, batch[1].ID})
+	if err != nil || len(selectedBatch) != 2 {
+		t.Fatalf("unexpected IDs result: teachers=%+v err=%v", selectedBatch, err)
 	}
-	if rows, err := teacherRepo.QueryOneByCond(Teacher{Name: "rb1"}, &selected); err != nil || rows != 1 {
-		t.Fatalf("query one by condition failed: rows=%d err=%v", rows, err)
+	if selected, err = teacherRepo.QueryOneByCond(rds.CondQuery[Teacher]{Condition: Teacher{Name: "rb1"}}); err != nil {
+		t.Fatalf("query one by condition failed: err=%v", err)
 	}
-	if rows, err := teacherRepo.QueryOneByWhere("id = ?", &selected, teacher.ID); err != nil || rows != 1 {
-		t.Fatalf("query one by where failed: rows=%d err=%v", rows, err)
+	if selected, err = teacherRepo.QueryOneByWhere(rds.WhereQuery{RawWhereSQL: "id = ?", Args: []any{teacher.ID}}); err != nil {
+		t.Fatalf("query one by where failed: err=%v", err)
 	}
-	if rows, err := teacherRepo.QueryOneByGorm(&selected, func(db *gorm.DB) { db.Where("id = ?", teacher.ID) }); err != nil || rows != 1 {
-		t.Fatalf("query one by GORM failed: rows=%d err=%v", rows, err)
-	}
-
-	var list []*Teacher
-	if rows, err := teacherRepo.QueryByCond(Teacher{Name: "rb1"}, "id", &list); err != nil || rows != 1 {
-		t.Fatalf("query by condition failed: rows=%d err=%v", rows, err)
-	}
-	if rows, err := teacherRepo.QueryByMap(map[string]any{"name": "rb2"}, "id", &list); err != nil || rows != 1 {
-		t.Fatalf("query by map failed: rows=%d err=%v", rows, err)
-	}
-	if rows, err := teacherRepo.QueryByWhere("name in ?", "id", &list, []string{"rb1", "rb2"}); err != nil || rows != 2 {
-		t.Fatalf("query by where failed: rows=%d err=%v", rows, err)
-	}
-	if rows, err := teacherRepo.QueryByGorm(&list, func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || rows != 2 {
-		t.Fatalf("query by GORM failed: rows=%d err=%v", rows, err)
+	if selected, err = teacherRepo.QueryOneByGorm(func(db *gorm.DB) { db.Where("id = ?", teacher.ID) }); err != nil {
+		t.Fatalf("query one by GORM failed: err=%v", err)
 	}
 
-	if count, err := teacherRepo.CountByCond(Teacher{Name: "rb1"}); err != nil || count != 1 {
+	list, err := teacherRepo.QueryByCond(rds.NewCondQuery(Teacher{Name: "rb1"}).OrderBy("id").WithLimit(1))
+	if err != nil || len(list) != 1 {
+		t.Fatalf("query by condition failed: err=%v", err)
+	}
+	if list, err = teacherRepo.QueryByMap(rds.MapQuery{Condition: map[string]any{"name": "rb2"}, QueryOptions: rds.QueryOptions{OrderBySQL: "id"}}); err != nil || len(list) != 1 {
+		t.Fatalf("query by map failed: err=%v", err)
+	}
+	if list, err = teacherRepo.QueryByWhere(rds.WhereQuery{RawWhereSQL: "name in ?", Args: []any{[]string{"rb1", "rb2"}}, QueryOptions: rds.QueryOptions{OrderBySQL: "id"}}); err != nil || len(list) != 2 {
+		t.Fatalf("query by where failed: err=%v", err)
+	}
+	if list, err = teacherRepo.QueryByGorm(func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || len(list) != 2 {
+		t.Fatalf("query by GORM failed: err=%v", err)
+	}
+
+	if count, err := teacherRepo.CountByCond(rds.CondQuery[Teacher]{Condition: Teacher{Name: "rb1"}}); err != nil || count != 1 {
 		t.Fatalf("unexpected condition count: count=%d err=%v", count, err)
 	}
-	if count, err := teacherRepo.CountByMap(map[string]any{"name": "rb2"}); err != nil || count != 1 {
+	if count, err := teacherRepo.CountByMap(rds.MapQuery{Condition: map[string]any{"name": "rb2"}}); err != nil || count != 1 {
 		t.Fatalf("unexpected map count: count=%d err=%v", count, err)
 	}
-	if count, err := teacherRepo.CountByWhere("name in ?", []string{"rb1", "rb2"}); err != nil || count != 2 {
+	if count, err := teacherRepo.CountByWhere(rds.WhereQuery{RawWhereSQL: "name in ?", Args: []any{[]string{"rb1", "rb2"}}}); err != nil || count != 2 {
 		t.Fatalf("unexpected where count: count=%d err=%v", count, err)
 	}
 	if count, err := teacherRepo.CountByGorm(func(db *gorm.DB) { db.Where("name in ?", []string{"rb1", "rb2"}) }); err != nil || count != 2 {
@@ -162,24 +162,65 @@ func TestPaginationVariants(t *testing.T) {
 		}
 	}
 
-	pager := databasecloud.Pager[Teacher]{Number: 2, Size: 2}
-	err := teacherRepo.QueryPageByCond(Teacher{Name: "rpage"}, rds.PageQuery{OrderBySQL: "age"}, &pager)
+	pager, err := teacherRepo.QueryPageByCond(rds.NewPageQuery(Teacher{Name: "rpage"}, 2, 2).OrderBy("age"))
 	assertPage("condition", pager, err)
-	pager = databasecloud.Pager[Teacher]{Number: 2, Size: 2}
-	err = teacherRepo.QueryPageByMap(map[string]any{"name": "rpage"}, rds.PageQuery{OrderBySQL: "age", SpecifyColumns: []string{"id", "age"}}, &pager)
+	pager, err = teacherRepo.QueryPageByMap(rds.NewMapPageQuery(map[string]any{"name": "rpage"}, 2, 2).OrderBy("age").Select("id", "age"))
 	assertPage("map", pager, err)
-	pager = databasecloud.Pager[Teacher]{Number: 2, Size: 2}
-	err = teacherRepo.QueryPageByWhere("name = ?", rds.PageQuery{OrderBySQL: "age"}, &pager, "rpage")
+	pager, err = teacherRepo.QueryPageByWhere(rds.NewWherePageQuery("name = ?", 2, 2, "rpage").OrderBy("age"))
 	assertPage("where", pager, err)
 
-	var result []*Teacher
-	total, err := teacherRepo.QueryPageByGorm(
-		func(db *gorm.DB) { db.Where("name = ?", "rpage") },
-		func(db *gorm.DB) { db.Where("name = ?", "rpage").Order("age").Offset(2).Limit(2) },
-		&result,
+	pager, err = teacherRepo.QueryPageByGorm(rds.GormPageQuery{
+		CountRawDB:  func(db *gorm.DB) { db.Where("name = ?", "rpage") },
+		PageRawDB:   func(db *gorm.DB) { db.Where("name = ?", "rpage").Order("age").Offset(2).Limit(2) },
+		PageOptions: rds.PageOptions{Number: 2, Size: 2},
+	})
+	if err != nil || pager.Total != 5 || len(pager.Records) != 2 {
+		t.Fatalf("unexpected GORM page: total=%d records=%d err=%v", pager.Total, len(pager.Records), err)
+	}
+}
+
+func TestWrapperVariants(t *testing.T) {
+	first := saveTeacher(t, "rwrapper", 18)
+	second := saveTeacher(t, "rwrapper", 20)
+	defer removeTeachers(t, first.ID, second.ID)
+
+	c := teacherRepo.RawMapper().Columns()
+
+	selected, err := teacherRepo.QueryOneByWrapper(
+		teacherRepo.Wrapper().Eq(c.ID, first.ID),
 	)
-	if err != nil || total != 5 || len(result) != 2 {
-		t.Fatalf("unexpected GORM page: total=%d records=%d err=%v", total, len(result), err)
+	if err != nil || selected == nil || selected.ID != first.ID {
+		t.Fatalf("unexpected Wrapper single result: teacher=%+v err=%v", selected, err)
+	}
+
+	list, err := teacherRepo.QueryByWrapper(
+		teacherRepo.Wrapper().Eq(c.Name, "rwrapper").OrderByAsc(c.Age),
+	)
+	if err != nil || len(list) != 2 || list[0].Age != 18 || list[1].Age != 20 {
+		t.Fatalf("unexpected Wrapper results: teachers=%+v err=%v", list, err)
+	}
+
+	count, err := teacherRepo.CountByWrapper(teacherRepo.Wrapper().Eq(c.Name, "rwrapper"))
+	if err != nil || count != 2 {
+		t.Fatalf("unexpected Wrapper count: count=%d err=%v", count, err)
+	}
+
+	pager, err := teacherRepo.QueryPageByWrapper(
+		teacherRepo.PageWrapper(2, 1).Eq(c.Name, "rwrapper").OrderByAsc(c.Age),
+	)
+	if err != nil || pager.Number != 2 || pager.Size != 1 || pager.Total != 2 || len(pager.Records) != 1 || pager.Records[0].ID != second.ID {
+		t.Fatalf("unexpected Wrapper page: pager=%+v err=%v", pager, err)
+	}
+
+	rows, err := teacherRepo.ModifyByWrapper(
+		teacherRepo.UpdateWrapper().Eq(c.ID, first.ID).Set(c.Age, uint(0)),
+	)
+	if err != nil || rows != 1 {
+		t.Fatalf("unexpected Wrapper update: rows=%d err=%v", rows, err)
+	}
+	updated, err := teacherRepo.QueryByID(first.ID)
+	if err != nil || updated.Age != 0 {
+		t.Fatalf("unexpected Wrapper update result: teacher=%+v err=%v", updated, err)
 	}
 }
 
@@ -188,11 +229,11 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	defer removeTeachers(t, teacher.ID)
 
 	teacher.Name = "rm2"
-	if _, err := teacherRepo.ModifyByID(teacher); err != nil {
+	if _, err := teacherRepo.ModifyByID(teacher, teacher.ID); err != nil {
 		t.Fatal(err)
 	}
 	teacher.Name, teacher.Age, teacher.Sex = "rm3", 0, 0
-	if _, err := teacherRepo.ModifyByIDWithoutZeroFields(teacher, "sex"); err != nil {
+	if _, err := teacherRepo.ModifyByIDWithoutZeroFields(teacher, teacher.ID, "sex"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := teacherRepo.ModifyByIDWithMap(map[string]any{"name": "rm4"}, teacher.ID); err != nil {
@@ -210,8 +251,8 @@ func TestModifyAndRemoveVariants(t *testing.T) {
 	if _, err := teacherRepo.ModifyByWhere(&Teacher{Name: "rm7"}, "id = ?", teacher.ID); err != nil {
 		t.Fatal(err)
 	}
-	var selected Teacher
-	if _, err := teacherRepo.QueryByID(teacher.ID, &selected); err != nil || selected.Name != "rm7" || selected.Age != 0 || selected.Sex != 0 {
+	selected, err := teacherRepo.QueryByID(teacher.ID)
+	if err != nil || selected.Name != "rm7" || selected.Age != 0 || selected.Sex != 0 {
 		t.Fatalf("unexpected modified teacher: %+v err=%v", selected, err)
 	}
 
@@ -303,5 +344,64 @@ func TestTransactionRepositories(t *testing.T) {
 	}
 	if exists, err := teacherRepo.ExistsByID(rolledBackID); err != nil || exists {
 		t.Fatalf("automatic rollback failed: exists=%v err=%v", exists, err)
+	}
+}
+
+func TestEmptyQueryAndInvalidPage(t *testing.T) {
+	missingName := "cloud_database_missing_teacher"
+	c := teacherRepo.RawMapper().Columns()
+
+	if result, err := teacherRepo.QueryByID(int64(-1)); err != nil || result != nil {
+		t.Fatalf("不存在的 ID 应返回 nil：result=%+v err=%v", result, err)
+	}
+	if result, err := teacherRepo.QueryOneByCond(rds.NewCondQuery(Teacher{Name: missingName})); err != nil || result != nil {
+		t.Fatalf("实体条件无结果时应返回 nil：result=%+v err=%v", result, err)
+	}
+	if result, err := teacherRepo.QueryOneByMap(rds.NewMapQuery(map[string]any{"name": missingName})); err != nil || result != nil {
+		t.Fatalf("Map 条件无结果时应返回 nil：result=%+v err=%v", result, err)
+	}
+	if result, err := teacherRepo.QueryOneByWhere(rds.NewWhereQuery("name = ?", missingName)); err != nil || result != nil {
+		t.Fatalf("Where 条件无结果时应返回 nil：result=%+v err=%v", result, err)
+	}
+	if result, err := teacherRepo.QueryOneByGorm(func(db *gorm.DB) { db.Where("name = ?", missingName) }); err != nil || result != nil {
+		t.Fatalf("GORM 条件无结果时应返回 nil：result=%+v err=%v", result, err)
+	}
+	if result, err := teacherRepo.QueryOneByWrapper(teacherRepo.Wrapper().Eq(c.Name, missingName)); err != nil || result != nil {
+		t.Fatalf("Wrapper 条件无结果时应返回 nil：result=%+v err=%v", result, err)
+	}
+
+	if _, err := teacherRepo.QueryPageByCond(rds.NewPageQuery(Teacher{}, 0, 10)); !errors.Is(err, gormstarter.ErrInvalidPage) {
+		t.Fatalf("非法实体分页参数应返回 ErrInvalidPage，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryPageByMap(rds.NewMapPageQuery(map[string]any{}, 1, 0)); !errors.Is(err, gormstarter.ErrInvalidPage) {
+		t.Fatalf("非法 Map 分页参数应返回 ErrInvalidPage，实际为 %v", err)
+	}
+	if _, err := teacherRepo.QueryPageByWhere(rds.NewWherePageQuery("1 = 1", -1, 10)); !errors.Is(err, gormstarter.ErrInvalidPage) {
+		t.Fatalf("非法 Where 分页参数应返回 ErrInvalidPage，实际为 %v", err)
+	}
+}
+
+func TestTransactionRollsBackOnPanic(t *testing.T) {
+	panicValue := "transaction panic"
+	var teacherID int64
+
+	func() {
+		defer func() {
+			if recovered := recover(); recovered != panicValue {
+				t.Fatalf("事务应继续抛出原 panic，实际为 %v", recovered)
+			}
+		}()
+		_ = teacherRepo.Transaction(func(repo TeacherRepo) error {
+			teacher := &Teacher{Name: "rtxp", Age: 5}
+			if _, err := repo.Save(teacher); err != nil {
+				return err
+			}
+			teacherID = teacher.ID
+			panic(panicValue)
+		})
+	}()
+
+	if exists, err := teacherRepo.ExistsByID(teacherID); err != nil || exists {
+		t.Fatalf("panic 后事务应回滚：exists=%v err=%v", exists, err)
 	}
 }
