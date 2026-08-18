@@ -85,20 +85,25 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	if err != nil || one.Age != 31 {
 		t.Fatalf("实体条件单条查询失败: result=%+v err=%v", one, err)
 	}
-	one, err = teacherRepo.QueryOneByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"name": scope + "_bson"}}); if err != nil || one.Name != scope+"_bson" {
+	one, err = teacherRepo.QueryOneByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"name": scope + "_bson"}})
+	if err != nil || one.Name != scope+"_bson" {
 		t.Fatalf("BSON 单条查询失败: result=%+v err=%v", one, err)
 	}
-	one, err = teacherRepo.QueryOneWithOptions(bson.M{"name": scope + "_options"}, options.FindOne().SetProjection(bson.M{"name": 1})); if err != nil || one.Name != scope+"_options" {
+	one, err = teacherRepo.QueryOneWithOptions(bson.M{"name": scope + "_options"}, options.FindOne().SetProjection(bson.M{"name": 1}))
+	if err != nil || one.Name != scope+"_options" {
 		t.Fatalf("Options 单条查询失败: result=%+v err=%v", one, err)
 	}
 
-	records, err := teacherRepo.QueryByCond(databasecloudmongo.NewCondQuery(Teacher{ClassNo: 2}).WithOrderBy(mongostarter.OrderBy{Column: "age", Desc: true}).WithLimit(1)); if err != nil || len(records) != 1 || records[0].Age != 35 {
+	records, err := teacherRepo.QueryByCond(databasecloudmongo.NewCondQuery(Teacher{ClassNo: 2}).WithOrderBy(mongostarter.OrderBy{Column: "age", Desc: true}).WithLimit(1))
+	if err != nil || len(records) != 1 || records[0].Age != 35 {
 		t.Fatalf("实体条件列表查询失败: records=%+v err=%v", records, err)
 	}
-	records, err = teacherRepo.QueryByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"class_no": uint(3)}, QueryOptions: databasecloudmongo.QueryOptions{OrderBy: mongostarter.NewOrderBy("age", false)}}); if err != nil || len(records) != 2 || records[0].Age != 36 {
+	records, err = teacherRepo.QueryByBSON(databasecloudmongo.BSONQuery{Condition: bson.M{"class_no": uint(3)}, QueryOptions: databasecloudmongo.QueryOptions{OrderBy: mongostarter.NewOrderBy("age", false)}})
+	if err != nil || len(records) != 2 || records[0].Age != 36 {
 		t.Fatalf("BSON 列表查询失败: records=%+v err=%v", records, err)
 	}
-	records, err = teacherRepo.QueryWithOptions(bson.M{"class_no": uint(4)}, options.Find().SetSort(bson.D{{Key: "age", Value: -1}})); if err != nil || len(records) != 2 || records[0].Age != 39 {
+	records, err = teacherRepo.QueryWithOptions(bson.M{"class_no": uint(4)}, options.Find().SetSort(bson.D{{Key: "age", Value: -1}}))
+	if err != nil || len(records) != 2 || records[0].Age != 39 {
 		t.Fatalf("Options 列表查询失败: records=%+v err=%v", records, err)
 	}
 

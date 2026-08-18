@@ -75,7 +75,8 @@ func TestSaveAndQueryVariants(t *testing.T) {
 		t.Fatalf("save map failed: rows=%d err=%v", rows, err)
 	}
 	mapTeacher, err := teacherRepo.QueryOneByMap(rds.MapQuery{Condition: map[string]any{"name": "rmap"}})
-	if err != nil { t.Fatalf("query map teacher failed: err=%v", err)
+	if err != nil {
+		t.Fatalf("query map teacher failed: err=%v", err)
 	}
 	defer removeTeachers(t, mapTeacher.ID)
 
@@ -107,7 +108,8 @@ func TestSaveAndQueryVariants(t *testing.T) {
 	}
 
 	list, err := teacherRepo.QueryByCond(rds.NewCondQuery(Teacher{Name: "rb1"}).OrderBy("id").WithLimit(1))
-	if err != nil || len(list) != 1 { t.Fatalf("query by condition failed: err=%v", err)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("query by condition failed: err=%v", err)
 	}
 	if list, err = teacherRepo.QueryByMap(rds.MapQuery{Condition: map[string]any{"name": "rb2"}, QueryOptions: rds.QueryOptions{OrderBySQL: "id"}}); err != nil || len(list) != 1 {
 		t.Fatalf("query by map failed: err=%v", err)
@@ -168,8 +170,8 @@ func TestPaginationVariants(t *testing.T) {
 	assertPage("where", pager, err)
 
 	pager, err = teacherRepo.QueryPageByGorm(rds.GormPageQuery{
-		CountRawDB: func(db *gorm.DB) { db.Where("name = ?", "rpage") },
-		PageRawDB: func(db *gorm.DB) { db.Where("name = ?", "rpage").Order("age").Offset(2).Limit(2) },
+		CountRawDB:  func(db *gorm.DB) { db.Where("name = ?", "rpage") },
+		PageRawDB:   func(db *gorm.DB) { db.Where("name = ?", "rpage").Order("age").Offset(2).Limit(2) },
 		PageOptions: rds.PageOptions{Number: 2, Size: 2},
 	})
 	if err != nil || pager.Total != 5 || len(pager.Records) != 2 {

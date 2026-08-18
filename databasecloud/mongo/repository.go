@@ -80,12 +80,18 @@ func (r Repository[M, T]) SaveBatchWithOptions(documents any, opts ...options.Li
 
 // QueryByID 根据 ID 查询数据，普通字符串 ID 需要将 notObjectID 设置为 true
 func (r Repository[M, T]) QueryByID(id any, notObjectID ...bool) (*T, error) {
-	result := new(T); if err := r.mapper.SelectByID(id, result, notObjectID...); err != nil { return nil, err }; return result, nil
+	result := new(T)
+	if err := r.mapper.SelectByID(id, result, notObjectID...); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // QueryByIDs 根据多个 ID 查询数据，普通字符串 ID 需要将 notObjectID 设置为 true
 func (r Repository[M, T]) QueryByIDs(ids []any, notObjectID ...bool) ([]*T, error) {
-	result := make([]*T, 0); err := r.mapper.SelectByIDs(ids, &result, notObjectID...); return result, err
+	result := make([]*T, 0)
+	err := r.mapper.SelectByIDs(ids, &result, notObjectID...)
+	return result, err
 }
 
 // ExistsByID 判断指定主键的数据是否存在。
@@ -95,55 +101,81 @@ func (r Repository[M, T]) ExistsByID(id any, notObjectID ...bool) (bool, error) 
 
 // QueryOneByCond 根据条件查询一条数据
 func (r Repository[M, T]) QueryOneByCond(query CondQuery[T]) (*T, error) {
-	result := new(T); if err := r.mapper.SelectOneByCond(query, result); err != nil { return nil, err }; return result, nil
+	result := new(T)
+	if err := r.mapper.SelectOneByCond(query, result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // QueryByCond 根据条件查询数据
 func (r Repository[M, T]) QueryByCond(query CondQuery[T]) ([]*T, error) {
-	result := make([]*T, 0); err := r.mapper.SelectByCond(query, &result); return result, err
+	result := make([]*T, 0)
+	err := r.mapper.SelectByCond(query, &result)
+	return result, err
 }
 
 // QueryOneByBSON 根据条件查询一条数据
 func (r Repository[M, T]) QueryOneByBSON(query BSONQuery) (*T, error) {
-	result := new(T); if err := r.mapper.SelectOneByBSON(query, result); err != nil { return nil, err }; return result, nil
+	result := new(T)
+	if err := r.mapper.SelectOneByBSON(query, result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // QueryByBSON 根据条件查询数据
 func (r Repository[M, T]) QueryByBSON(query BSONQuery) ([]*T, error) {
-	result := make([]*T, 0); err := r.mapper.SelectByBSON(query, &result); return result, err
+	result := make([]*T, 0)
+	err := r.mapper.SelectByBSON(query, &result)
+	return result, err
 }
 
 // QueryOneWithOptions 根据条件查询一条数据
 func (r Repository[M, T]) QueryOneWithOptions(filter any, opts ...options.Lister[options.FindOneOptions]) (*T, error) {
-	result := new(T); if err := r.mapper.SelectOneWithOptions(filter, result, opts...); err != nil { return nil, err }; return result, nil
+	result := new(T)
+	if err := r.mapper.SelectOneWithOptions(filter, result, opts...); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // QueryWithOptions 根据条件查询数据
 func (r Repository[M, T]) QueryWithOptions(filter any, opts ...options.Lister[options.FindOptions]) ([]*T, error) {
-	result := make([]*T, 0); err := r.mapper.SelectWithOptions(filter, &result, opts...); return result, err
+	result := make([]*T, 0)
+	err := r.mapper.SelectWithOptions(filter, &result, opts...)
+	return result, err
 }
 
 // QueryPageByCond 根据条件查询分页数据
 func (r Repository[M, T]) QueryPageByCond(query PageQuery[T]) (databasecloud.Pager[T], error) {
 	pager := databasecloud.Pager[T]{Number: query.Number, Size: query.Size}
 	total, err := r.mapper.SelectPageByCond(query, &pager.Records)
-	if err != nil { return pager, err }
+	if err != nil {
+		return pager, err
+	}
 	pager.Total = total
 	return pager, nil
 }
 
 // QueryPageByBSON 根据条件查询分页数据
 func (r Repository[M, T]) QueryPageByBSON(query BSONPageQuery) (databasecloud.Pager[T], error) {
-	pager := databasecloud.Pager[T]{Number: query.Number, Size: query.Size}; total, err := r.mapper.SelectPageByBSON(query, &pager.Records)
-	if err != nil { return pager, err }
+	pager := databasecloud.Pager[T]{Number: query.Number, Size: query.Size}
+	total, err := r.mapper.SelectPageByBSON(query, &pager.Records)
+	if err != nil {
+		return pager, err
+	}
 	pager.Total = total
 	return pager, nil
 }
 
 // QueryPageWithOptions 根据条件查询分页数据
 func (r Repository[M, T]) QueryPageWithOptions(query FilterPageQuery) (databasecloud.Pager[T], error) {
-	pager := databasecloud.Pager[T]{Number: query.Number, Size: query.Size}; total, err := r.mapper.SelectPageWithOptions(query, &pager.Records)
-	if err != nil { return pager, err }
+	pager := databasecloud.Pager[T]{Number: query.Number, Size: query.Size}
+	total, err := r.mapper.SelectPageWithOptions(query, &pager.Records)
+	if err != nil {
+		return pager, err
+	}
 	pager.Total = total
 	return pager, nil
 }
