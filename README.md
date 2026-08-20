@@ -191,13 +191,13 @@ Updates use the same field metadata and condition operations with explicit assig
 
 ```go
 rows, err := repo.ModifyByWrapper(
-	repo.UpdateWrapper().
+	repo.ModifyWrapper().
 		Eq(c.ID, teacherID).
 		Set(c.Age, 0),
 )
 ```
 
-`PageWrapper` does not expose `Limit` or `Offset`. `UpdateWrapper` requires at least one condition and one `Set`; explicit zero and `nil` values are retained.
+`PageWrapper` does not expose `Limit` or `Offset`. `ModifyWrapper` requires at least one condition and one `Set`; explicit zero and `nil` values are retained.
 
 ### Pagination
 
@@ -387,7 +387,7 @@ pager, err := repo.QueryPageByBSON(
 
 RDS and Mongo `QueryOptions.Limit` apply only to ordinary list queries. Zero leaves results unrestricted, negative values return the underlying range error, and pagination remains controlled exclusively by `Number/Size`.
 
-The `rds` and `mongo` query types are facade aliases of their starter-layer counterparts. RDS wrapper types use the same facade pattern, so application Repository extensions can declare `rds.QueryWrapper`, `rds.PageWrapper`, or `rds.UpdateWrapper` without importing `starter-gorm`. Query and wrapper behavior remains implemented in the corresponding starter module.
+The `rds` and `mongo` query types are facade aliases of their starter-layer counterparts. RDS wrapper types use the same facade pattern, so application Repository extensions can declare `rds.QueryWrapper`, `rds.PageWrapper`, or `rds.ModifyWrapper` without importing `starter-gorm`. Query and wrapper behavior remains implemented in the corresponding starter module.
 
 ### ID Handling
 

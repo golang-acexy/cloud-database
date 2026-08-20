@@ -43,8 +43,8 @@ func TestQueryFacade(t *testing.T) {
 	// 编译期赋值验证 Wrapper 门面与 starter 类型完全一致。
 	var queryWrapper *rds.QueryWrapper[Teacher] = teacherRepo.Wrapper()
 	var pageWrapper *rds.PageWrapper[Teacher] = teacherRepo.PageWrapper(1, 10)
-	var updateWrapper *rds.UpdateWrapper[Teacher] = teacherRepo.UpdateWrapper()
-	if queryWrapper == nil || pageWrapper == nil || updateWrapper == nil {
+	var modifyWrapper *rds.ModifyWrapper[Teacher] = teacherRepo.ModifyWrapper()
+	if queryWrapper == nil || pageWrapper == nil || modifyWrapper == nil {
 		t.Fatal("Wrapper 门面不应返回 nil")
 	}
 }
