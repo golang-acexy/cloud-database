@@ -213,7 +213,7 @@ func TestWrapperVariants(t *testing.T) {
 	}
 
 	rows, err := teacherRepo.ModifyByWrapper(
-		teacherRepo.UpdateWrapper().Eq(c.ID, first.ID).Set(c.Age, uint(0)),
+		teacherRepo.ModifyWrapper().Eq(c.ID, first.ID).Set(c.Age, uint(0)),
 	)
 	if err != nil || rows != 1 {
 		t.Fatalf("unexpected Wrapper update: rows=%d err=%v", rows, err)

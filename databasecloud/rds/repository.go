@@ -20,7 +20,7 @@ type Mapper[M any, T gormstarter.Model] interface {
 	gormstarter.DeleteMapper[T]
 	Wrapper() *QueryWrapper[T]
 	PageWrapper(number, size int) *PageWrapper[T]
-	UpdateWrapper() *UpdateWrapper[T]
+	UpdateWrapper() *ModifyWrapper[T]
 	WithTxMapper(tx *gorm.DB) M
 }
 
@@ -63,8 +63,8 @@ type QueryWrapper[T gormstarter.Model] = gormstarter.QueryWrapper[T]
 // PageWrapper 是 GORM 类型安全分页 Wrapper 在 RDS Repository 层的门面别名。
 type PageWrapper[T gormstarter.Model] = gormstarter.PageWrapper[T]
 
-// UpdateWrapper 是 GORM 类型安全更新 Wrapper 在 RDS Repository 层的门面别名。
-type UpdateWrapper[T gormstarter.Model] = gormstarter.UpdateWrapper[T]
+// ModifyWrapper 是 GORM 类型安全修改 Wrapper 在 RDS Repository 层的门面别名。
+type ModifyWrapper[T gormstarter.Model] = gormstarter.UpdateWrapper[T]
 
 // GormPageQuery 定义分别构建统计和分页数据的原始 GORM 查询。
 type GormPageQuery struct {
@@ -176,8 +176,8 @@ func (r Repository[R, M, T]) PageWrapper(number, size int) *PageWrapper[T] {
 	return r.mapper.PageWrapper(number, size)
 }
 
-// UpdateWrapper 创建与当前 Repository 模型类型绑定的更新 Wrapper。
-func (r Repository[R, M, T]) UpdateWrapper() *UpdateWrapper[T] {
+// ModifyWrapper 创建与当前 Repository 模型类型绑定的修改 Wrapper。
+func (r Repository[R, M, T]) ModifyWrapper() *ModifyWrapper[T] {
 	return r.mapper.UpdateWrapper()
 }
 
@@ -437,8 +437,8 @@ func (r Repository[R, M, T]) ModifyByWhere(updated *T, rawWhereSQL string, args 
 	return r.mapper.UpdateByWhere(updated, rawWhereSQL, args...)
 }
 
-// ModifyByWrapper 通过 UpdateWrapper 的条件和 Set 赋值更新数据。
-func (r Repository[R, M, T]) ModifyByWrapper(wrapper *UpdateWrapper[T]) (int64, error) {
+// ModifyByWrapper 通过 ModifyWrapper 的条件和 Set 赋值修改数据。
+func (r Repository[R, M, T]) ModifyByWrapper(wrapper *ModifyWrapper[T]) (int64, error) {
 	return r.mapper.UpdateByWrapper(wrapper)
 }
 
