@@ -10,7 +10,7 @@ This module is the bridge between infrastructure-oriented mappers and applicatio
 
 ## Requirements
 
-Current module Go version: `1.25.8`.
+Current module Go version: `1.26.7`.
 
 ## Installation
 
