@@ -3,11 +3,11 @@ module github.com/golang-acexy/cloud-database
 go 1.26.7
 
 require (
-	github.com/acexy/golang-toolkit v1.26.0
-	github.com/golang-acexy/starter-gorm v1.25.5-0.20260827025747-90223d757963
-	github.com/golang-acexy/starter-mongo v1.25.3-0.20260827025747-1fa0b86d6bca
-	github.com/golang-acexy/starter-parent v1.26.0
-	go.mongodb.org/mongo-driver/v2 v2.8.1
+	github.com/acexy/golang-toolkit v1.26.1
+	github.com/golang-acexy/starter-gorm v1.26.0
+	github.com/golang-acexy/starter-mongo v1.26.0
+	github.com/golang-acexy/starter-parent v1.26.1
+	go.mongodb.org/mongo-driver/v2 v2.8.2
 	gorm.io/gorm v1.31.2
 )
 
