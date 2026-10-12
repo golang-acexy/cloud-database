@@ -3,10 +3,10 @@ package rds
 import "errors"
 
 var (
-	// ErrNilRepositoryFactory 表示未提供业务 Repository 工厂函数。
+	// ErrNilRepositoryFactory indicates that NewRepository received a nil factory.
 	ErrNilRepositoryFactory = errors.New("repository factory function is nil")
-	// ErrRepositoryNotInitialized 表示 Repository 未通过构造函数初始化。
+	// ErrRepositoryNotInitialized indicates that Transaction has no initialized factory.
 	ErrRepositoryNotInitialized = errors.New("repository is not initialized")
-	// ErrNilTransactionFunc 表示事务执行函数为空。
+	// ErrNilTransactionFunc indicates that Transaction received a nil callback.
 	ErrNilTransactionFunc = errors.New("transaction function is nil")
 )
