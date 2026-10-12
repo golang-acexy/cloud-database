@@ -25,7 +25,7 @@ go get github.com/golang-acexy/starter-gorm
 go get github.com/golang-acexy/starter-mongo
 ```
 
-The database starter must be running before repository methods are used. `cloud-database` is a code package and does not own database lifecycle.
+Keep borrowed maps, filters, option builders, and wrapper values stable during execution. Query constructors do not deep-copy all inputs. Concurrent use depends on the concrete mapper and factory; mutable sessions and results must not be shared unsafely. The database starter must be running before repository methods are used. `cloud-database` is a code package and does not own database lifecycle.
 
 ## Shared Pagination
 
@@ -40,7 +40,7 @@ type Pager[T any] struct {
 }
 ```
 
-Page numbers start at 1. Callers are responsible for validating page number and size before invoking a repository.
+Page numbers start at 1. Standard mapper pagination validates positive ranges and offset overflow but imposes no application-wide maximum size. Validate your own size limit. Count and data queries are separate operations without an automatic snapshot. Empty page records may be nil; check errors before consuming results. Raw GORM callback pagination does not validate or apply page metadata.
 
 ## RDS Repository
 
@@ -55,6 +55,7 @@ type Teacher struct {
 	ID   uint64 `gorm:"primaryKey"`
 	Name string
 	Age  uint
+	CreatedAt time.Time
 }
 
 func (Teacher) TableName() string {
@@ -114,7 +115,7 @@ rows, err = repo.SaveBatch([]*Teacher{
 })
 ```
 
-`Save` includes zero values unless excluded explicitly. `SaveWithoutZeroFields` omits zero-value fields. `SaveOrModifyByPrimaryKey` performs insert-or-update behavior through the underlying mapper.
+`Save` follows GORM Create semantics, including model defaults and explicit column omissions. `SaveWithoutZeroFields` omits zero-value fields. `SaveOrModifyByPrimaryKey` performs insert-or-update behavior through the underlying mapper.
 
 ### Query Operations
 
@@ -139,8 +140,8 @@ Other query forms include:
 - `QueryByID` and `QueryByIDs`
 - `ExistsByID`
 - `QueryOneByWhere` and `QueryByWhere`
-- `QueryOneByGORM` and `QueryByGORM`
-- `CountByCond`, `CountByMap`, `CountByWhere`, and `CountByGORM`
+- `QueryOneByGorm` and `QueryByGorm`
+- `CountByCond`, `CountByMap`, `CountByWhere`, and `CountByGorm`
 
 Count methods use the same Repository query structures as list queries:
 
@@ -150,10 +151,10 @@ total, err := repo.CountByMap(
 )
 ```
 
-Raw GORM callbacks receive the current session and mutate that session directly:
+Raw GORM callbacks must be non-nil and mutate the provided table-scoped session. Repository methods return results directly:
 
 ```go
-rows, err := repo.QueryByGORM(&teachers, func(db *gorm.DB) {
+teachers, err := repo.QueryByGorm(func(db *gorm.DB) {
 	db.Where("age >= ?", 18).Order("id desc")
 })
 ```
@@ -220,12 +221,12 @@ start := time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)
 
 pager, err := repo.QueryPageByCond(
 	rds.PageQuery[Teacher]{
-		Condition: Teacher{Status: 1},
+		Condition: Teacher{Age: 18},
 		PageOptions: rds.PageOptions{
 			Number:     1,
 			Size:       20,
 			OrderBySQL: "id desc",
-			TimeRanges: []gormstarter.TimeRange{
+			TimeRanges: []rds.TimeRange{
 				{Field: "created_at", StartTime: &start},
 			},
 		},
@@ -251,7 +252,7 @@ rows, err = repo.ModifyByMap(
 rows, err = repo.RemoveByIDs([]any{1, 2, 3})
 ```
 
-Use Map variants when zero-value updates or conditions must be preserved. Repository methods return the affected row count and the underlying error.
+`ModifyByID` and `ModifyByCond` omit zero-valued struct assignments unless columns are explicitly selected. Use Map variants when zero-value updates or conditions must be preserved. Repository methods return the driver-reported affected count and error; a zero count is not automatically an error. For string primary keys, use `RemoveByMap(map[string]any{"id": value})` or `RemoveByWhere("id = ?", value)`: `RemoveByID` currently passes nonnumeric strings to GORM as inline SQL conditions.
 
 ### Transactions
 
@@ -276,13 +277,19 @@ Behavior:
 - Returning nil commits the transaction.
 - Returning an error rolls back and returns the error.
 - A panic rolls back and is rethrown.
-- Commit and rollback errors are preserved.
+- Callback errors are joined with rollback errors. Panic-path rollback errors are discarded.
+- Commit errors are returned without an additional rollback.
+- A missing factory returns `ErrRepositoryNotInitialized`; an unavailable database can panic.
 
 Use `NewTxRepo` when transaction lifecycle must be controlled manually:
 
 ```go
 txRepo := repo.NewTxRepo()
 tx := txRepo.CurrentGormDB()
+if tx.Error != nil {
+	return tx.Error
+}
+defer tx.Rollback()
 
 if _, err := txRepo.Save(&Teacher{Name: "Alice"}); err != nil {
 	tx.Rollback()
@@ -291,7 +298,7 @@ if _, err := txRepo.Save(&Teacher{Name: "Alice"}); err != nil {
 return tx.Commit().Error
 ```
 
-Use `WithTxRepo(tx)` to bind an existing `*gorm.DB` transaction. Creating another transaction repository from an already transaction-bound repository logs an error warning but does not stop the operation.
+Use `WithTxRepo(tx)` to bind an existing caller-owned transaction; with the standard mapper, nil restores ordinary routing. Start the database first and initialize the repository through its constructor. Use only transaction repositories for transactional work and do not reuse them after completion. Factories must restore any custom repository fields. No helper adds nested transactions or savepoints. Creating another transaction repository from an already transaction-bound repository logs an error warning but does not stop the operation.
 
 ### Raw Access
 
@@ -337,7 +344,7 @@ func NewTeacherRepo() TeacherRepo {
 
 ### Save Operations
 
-Mongo save methods return inserted ObjectID strings:
+Mongo save methods return formatted inserted IDs; ObjectIDs become hexadecimal strings:
 
 ```go
 id, err := repo.Save(&Teacher{Name: "Alice", Age: 30})
@@ -353,7 +360,7 @@ ids, err := repo.SaveBatch([]*Teacher{
 })
 ```
 
-Every single and batch save operation also has BSON or native Options variants.
+Every single and batch save operation also has BSON or native Options variants. Batch errors may occur after partial writes, return no IDs, and do not roll back inserted documents. Unacknowledged writes return an error without proving that no write occurred.
 
 ### Query and Pagination
 
@@ -363,7 +370,7 @@ Mongo queries are available in three forms:
 - `ByBSON` for `bson.M` filters
 - `WithOptions` for native driver filters and options
 
-Typed Mongo conditions also use value semantics; query result destinations remain pointers.
+Typed Mongo conditions use value semantics; repositories allocate and return results directly. Single-result methods preserve `mongo.ErrNoDocuments`, unlike standard RDS single queries that return `nil, nil` for no rows. List errors may accompany partial results.
 
 ```go
 teachers, err := repo.QueryByBSON(
@@ -423,14 +430,16 @@ rows, err = repo.RemoveByBSON(bson.M{"status": "inactive"})
 
 Single and multi-document variants are explicit: `ModifyOne*`/`Modify*` and `RemoveOne*`/`Remove*`.
 
-Empty update and delete conditions are rejected by `starter-mongo` to prevent accidental full-collection operations.
+Mongo updates return `ModifiedCount`, not the number of matches; unchanged matches can return zero. Deletes return `DeletedCount`. Empty-filter guards use default BSON encoding, while execution uses configured BSON options. Settings such as `OmitEmpty` can turn an accepted typed/native filter into an empty filter; use explicit BSON predicates or verify filters under the actual encoding configuration.
 
 ### Raw Access
 
 ```go
 mapper := repo.RawMapper()
-collection, err := repo.Collection()
+collection := repo.Collection()
 ```
+
+Native collection access can return nil before startup or after shutdown. Ordinary Mongo operations use background contexts and do not inherit request cancellation or transaction sessions; use native collection methods when those contexts are required.
 
 ## Lifecycle
 
@@ -473,7 +482,7 @@ Mapper and starter errors are returned without being hidden. Use `errors.Is` for
 Run tests from the module directory:
 
 ```bash
-GOMODCACHE=/Users/acexy/Repository/cache/golang go test ./...
+go test ./...
 ```
 
-The RDS and Mongo integration suites require the local database configurations defined in their test packages.
+The RDS and Mongo suites under `test/` start real databases in TestMain and perform writes and cleanup. Run them only against prepared test databases; even `-run` selection does not bypass TestMain. To compile library packages without database startup, use `go test ./databasecloud/...`.

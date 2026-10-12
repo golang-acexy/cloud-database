@@ -1,9 +1,14 @@
 package databasecloud
 
+// Pager holds caller-owned query output; Records may be nil and metadata is not query input.
 type Pager[T any] struct {
-	Records []*T `json:"records"` // 响应数据
+	// Records contains decoded records; check errors before using partial results.
+	Records []*T `json:"records"`
 
-	Total  int64 `json:"total"`  // 响应总记录数
-	Size   int   `json:"size"`   // 请求每页记录数
-	Number int   `json:"number"` // 请求页码 从1开始
+	// Total is the reported matching count; count and data do not share an automatic snapshot.
+	Total int64 `json:"total"`
+	// Size echoes the requested page size.
+	Size int `json:"size"`
+	// Number echoes the requested one-based page number.
+	Number int `json:"number"`
 }
