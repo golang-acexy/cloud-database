@@ -92,11 +92,21 @@ func NewRepository[R any, M Mapper[M, T], T gormstarter.Model](mapper M, factory
 // NewTxRepo begins a caller-owned transaction; check CurrentGormDB().Error immediately.
 // Requires an initialized repository and available database; unavailable routing may panic.
 // Existing transactions are logged but not rejected.
+// A successful Begin is rolled back if mapper copying or the factory panics or calls runtime.Goexit before handoff.
 func (r Repository[R, M, T]) NewTxRepo(opts ...*sql.TxOptions) R {
 	db := r.mapper.CurrentGormDB()
 	warnTransactionRepository(db, "NewTxRepo")
 	tx := db.Begin(opts...)
-	return r.repositoryWithTx(tx)
+	begun := tx.Error == nil
+	handedOff := false
+	defer func() {
+		if begun && !handedOff {
+			tx.Rollback()
+		}
+	}()
+	repository := r.repositoryWithTx(tx)
+	handedOff = true
+	return repository
 }
 
 // WithTxRepo copies an initialized repository onto a caller-owned transaction; nil restores ordinary routing with the standard mapper.
@@ -119,7 +129,8 @@ func warnTransactionRepository(db *gorm.DB, operation string) {
 
 // Transaction returns ErrNilTransactionFunc for nil callbacks and ErrRepositoryNotInitialized for missing factories.
 // It commits on callback success; callback errors trigger rollback and are joined with rollback errors.
-// Panics trigger rollback and are rethrown, discarding rollback errors; commit errors return without another rollback.
+// Panics and runtime.Goexit trigger rollback without intercepting the exit; cleanup errors are discarded.
+// Commit errors return without another rollback.
 // Requires an available database and initialized factory; use the callback repository for transactional work. Nested transactions are unsupported.
 func (r Repository[R, M, T]) Transaction(fn func(R) error, opts ...*sql.TxOptions) (err error) {
 	if fn == nil {
@@ -134,20 +145,25 @@ func (r Repository[R, M, T]) Transaction(fn func(R) error, opts ...*sql.TxOption
 		return tx.Error
 	}
 
+	completed := false
 	defer func() {
-		if recovered := recover(); recovered != nil {
+		// Goexit runs deferred calls without a recoverable panic.
+		if !completed {
 			tx.Rollback()
-			panic(recovered)
 		}
 	}()
 
 	if err = fn(r.repositoryWithTx(tx)); err != nil {
-		if rollbackErr := tx.Rollback().Error; rollbackErr != nil {
+		rollbackErr := tx.Rollback().Error
+		completed = true
+		if rollbackErr != nil {
 			return errors.Join(err, rollbackErr)
 		}
 		return err
 	}
-	return tx.Commit().Error
+	err = tx.Commit().Error
+	completed = true
+	return err
 }
 
 func (r Repository[R, M, T]) repositoryWithTx(tx *gorm.DB) R {

@@ -276,12 +276,12 @@ Behavior:
 - A nil callback returns `ErrNilTransactionFunc`.
 - Returning nil commits the transaction.
 - Returning an error rolls back and returns the error.
-- A panic rolls back and is rethrown.
+- A panic or `runtime.Goexit` rolls back; the panic or goroutine exit continues unchanged.
 - Callback errors are joined with rollback errors. Panic-path rollback errors are discarded.
 - Commit errors are returned without an additional rollback.
 - A missing factory returns `ErrRepositoryNotInitialized`; an unavailable database can panic.
 
-Use `NewTxRepo` when transaction lifecycle must be controlled manually:
+Use `NewTxRepo` when transaction lifecycle must be controlled manually. If mapper copying or the repository factory panics or calls `runtime.Goexit` before returning, a successfully started transaction is rolled back. After a successful return, the caller owns commit/rollback:
 
 ```go
 txRepo := repo.NewTxRepo()
