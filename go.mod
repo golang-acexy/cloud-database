@@ -3,10 +3,10 @@ module github.com/golang-acexy/cloud-database
 go 1.26.7
 
 require (
-	github.com/acexy/golang-toolkit v1.26.2
-	github.com/golang-acexy/starter-gorm v1.26.1
-	github.com/golang-acexy/starter-mongo v1.26.1
-	github.com/golang-acexy/starter-parent v1.26.2
+	github.com/acexy/golang-toolkit v1.26.4
+	github.com/golang-acexy/starter-gorm v1.26.2
+	github.com/golang-acexy/starter-mongo v1.26.2
+	github.com/golang-acexy/starter-parent v1.26.3
 	go.mongodb.org/mongo-driver/v2 v2.9.2
 	gorm.io/gorm v1.31.2
 )
@@ -16,11 +16,11 @@ require (
 	github.com/go-sql-driver/mysql v1.10.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.11.0 // indirect
+	github.com/jackc/pgx/v5 v5.12.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/tidwall/gjson v1.20.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
